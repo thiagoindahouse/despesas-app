@@ -183,6 +183,11 @@ tbody tr:hover { background: var(--cp-surface-soft); }
 #fxTabela td { padding: 5px 6px; }
 #fxTabela tr.fora { opacity: .42; }
 #fxTabela tr.varia input.val { border-color: var(--cp-warning); }
+#fxTabela select.quem { border-color: var(--cp-warning); background: var(--cp-accent-soft); }
+#fxTabela select.quem.mexido { border-color: var(--cp-success); background: var(--cp-surface); }
+#fxTabela .mini { display: block; font-size: 0.625rem; color: var(--cp-text-muted); margin-top: 2px; }
+.aviso-incompleto { display: inline-block; font-size: 0.6875rem; padding: 1px 8px; border-radius: 999px;
+                    background: rgba(245,158,11,.16); color: var(--cp-warning); font-weight: 600; margin-left: 6px; }
 .chip { display: inline-block; font-size: 0.6875rem; padding: 0 6px; border-radius: 999px;
         background: var(--cp-surface-soft); color: var(--cp-text-muted); margin-left: 6px; }
 .item-arquivo { display: block; width: 100%; text-align: left; margin-bottom: 6px; padding: 10px 12px; }
@@ -644,20 +649,36 @@ function acharAbaLancamentos(partes) {
   return a;
 }
 
+const CAB_RECORRENTES = ["Descrição", "Categoria", "Tipo", "Quem Pagou", "% Thiago",
+  "Valor de referência", "Valor varia?", "1ª parcela", "Total parcelas", "Ativo?", "Observação"];
+
 /* Le a aba Recorrentes: e ela que alimenta o botao "Lançar fixas do mês".
-   Le apenas o intervalo da tabela tbRecorrentes, para que as notas escritas
-   abaixo dela nunca sejam confundidas com despesas. */
+   Valida os cabecalhos antes de ler: numa versao antiga da planilha as colunas
+   ficavam em outra ordem, e ler assim mesmo fazia a parcela do carro sumir da
+   lista sem nenhum aviso. Melhor recusar e dizer o motivo. */
 function lerRecorrentes(ordem, partes) {
   const caminho = acharAba(partes, "Recorrentes");
-  if (!caminho || !partes.has(caminho)) return [];
+  if (!caminho || !partes.has(caminho)) {
+    return { itens: [], erro: "esta planilha não tem a aba Recorrentes" };
+  }
   const tab = acharTabela(ordem, partes, "tbRecorrentes");
+  if (!tab) {
+    return { itens: [], erro: "a aba Recorrentes está num formato antigo (sem a tabela tbRecorrentes). " +
+      "Use a versão atual da planilha, senão despesas como a parcela do carro somem da lista sem aviso" };
+  }
+  const difere = tab.colunas.length !== CAB_RECORRENTES.length ||
+                 tab.colunas.some((c, i) => c !== CAB_RECORRENTES[i]);
+  if (difere) {
+    return { itens: [], erro: "as colunas da aba Recorrentes não são as esperadas. " +
+      `Encontrei: ${tab.colunas.join(", ")}. Deveria ser: ${CAB_RECORRENTES.join(", ")}` };
+  }
   const ss = lerSharedStrings(partes);
   const xml = txt(partes.get(caminho));
   const corpo = /<sheetData\b[^>]*>([\s\S]*?)<\/sheetData>/.exec(xml);
   const out = [];
-  if (!corpo) return out;
-  const primeira = tab ? tab.primeira + 1 : 6;
-  const ultima = tab ? tab.ultima : Infinity;
+  if (!corpo) return { itens: out, erro: null };
+  const primeira = tab.primeira + 1;
+  const ultima = tab.ultima;
   for (const rm of corpo[1].matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)) {
     const nr = /\br="(\d+)"/.exec(rm[1] || "");
     if (!nr) continue;
@@ -684,7 +705,7 @@ function lerRecorrentes(ordem, partes) {
       parcelas: typeof c[10] === "number" ? c[10] : null,
     });
   }
-  return out;
+  return { itens: out, erro: null };
 }
 
 /* Monta a lista de fixas de um mês: calcula a parcela, sugere o valor a partir
@@ -1354,7 +1375,9 @@ async function carregar(fonte) {
   ESTADO.versao = versao;
   ESTADO.dados = linhas;
   ESTADO.acertos = lerAcertos(partes);
-  ESTADO.recorrentes = lerRecorrentes(ordem, partes);
+  const rec = lerRecorrentes(ordem, partes);
+  ESTADO.recorrentes = rec.itens;
+  ESTADO.erroRecorrentes = rec.erro;
   ESTADO.categorias = [...new Set(linhas.map(l => l.categoria))].sort((a, b) => a.localeCompare(b, "pt-BR"));
   $("nomeArquivo").textContent = fonte.nome;
   $("barraArquivo").hidden = false;
@@ -1362,6 +1385,8 @@ async function carregar(fonte) {
   $("app").hidden = false;
   $("btnNovo").hidden = false;
   $("btnFixas").hidden = false;
+  $("btnFixas").disabled = !!rec.erro;
+  $("btnFixas").title = rec.erro || "";
   $("btnRecarregar").hidden = false;
   $("btnAbrir").textContent = "Trocar planilha";
   if (fonte.tipo === "onedrive") {
@@ -1491,7 +1516,10 @@ function montarFiltros() {
   $("selAno").innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join("");
   $("selAno").value = ESTADO.filtro.ano;
   $("selMes").innerHTML = `<option value="0">Ano inteiro</option>` +
-    MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("");
+    MESES.map((m, i) => {
+      const inc = mesSoFixas(+ESTADO.filtro.ano, i + 1) ? " · só fixas" : "";
+      return `<option value="${i + 1}">${m}${inc}</option>`;
+    }).join("");
   $("selMes").value = ESTADO.filtro.mes;
   $("selCat").innerHTML = `<option value="">Todas</option>` +
     ESTADO.categorias.map(c => `<option value="${escapar(c)}">${escapar(c)}</option>`).join("");
@@ -1508,6 +1536,24 @@ function filtrados() {
     (f.mes === 0 || l.mes === +f.mes) &&
     (!f.cat || l.categoria === f.cat) &&
     (!f.quem || l.quem === f.quem));
+}
+
+/* Mes com lancamento mas nenhuma despesa conjunta: so as fixas foram lancadas.
+   Os valores valem, mas o total esta incompleto, e sem marcar isso o grafico
+   sugere uma queda de gasto que nao aconteceu. */
+function mesSoFixas(ano, mes) {
+  let temFixa = false;
+  for (const l of ESTADO.dados) {
+    if (l.ano !== ano || l.mes !== mes) continue;
+    if (l.tipo === "Conjunta") return false;
+    temFixa = true;
+  }
+  return temFixa;
+}
+function mesesSoFixas(ano) {
+  const out = [];
+  for (let m = 1; m <= 12; m++) if (mesSoFixas(ano, m)) out.push(m);
+  return out;
 }
 
 function desenhar() {
@@ -1547,7 +1593,8 @@ function desenhar() {
 
   $("kpis").innerHTML = [
     { lab: `Total · ${rotulo}`, val: brl.format(totalSel),
-      note: `${sel.length} lançamento${sel.length === 1 ? "" : "s"}` },
+      note: `${sel.length} lançamento${sel.length === 1 ? "" : "s"}` +
+            (f.mes !== 0 && mesSoFixas(+f.ano, +f.mes) ? ' <span class="aviso-incompleto">só fixas</span>' : "") },
     { lab: "Média mensal do ano", val: brl.format(media),
       note: `${comDados.length} mês(es) com dados · ano todo ${brlCurto(totalAno)}` },
     { lab: `vs ${+f.ano - 1} · ${periodoComp}`,
@@ -1591,8 +1638,14 @@ function desenhar() {
       ${MES_CURTO.map((m, i) => `<text x="${px(i)}" y="${H - 8}" text-anchor="middle" font-size="9"
           fill="${i === +f.mes - 1 ? "var(--cp-accent)" : "var(--cp-text-muted)"}"
           font-weight="${i === +f.mes - 1 ? 700 : 400}">${m}</text>`).join("")}
+      ${mesesSoFixas(+f.ano).map(m => `<text x="${px(m - 1)}" y="${H - 18}" text-anchor="middle"
+          font-size="11" fill="var(--cp-warning)"><title>Só as despesas fixas foram lançadas neste mês</title>*</text>`).join("")}
     </svg>
-    ${ultimo < 0 ? '<div class="legend">Nenhum lançamento neste ano ainda.</div>' : ""}`;
+    ${ultimo < 0 ? '<div class="legend">Nenhum lançamento neste ano ainda.</div>' : ""}
+    ${mesesSoFixas(+f.ano).length
+      ? `<div class="legend"><span style="color:var(--cp-warning);font-weight:700">*</span>
+         ${mesesSoFixas(+f.ano).map(m => MES_CURTO[m - 1]).join(", ")}:
+         só as fixas foram lançadas, o total do mês está incompleto.</div>` : ""}`;
 
   // --- barras por categoria
   $("tituloCategorias").textContent = `· ${rotulo}`;
@@ -1672,17 +1725,27 @@ function desenhar() {
   const ba = $("btnAcerto");
   if (ba) ba.addEventListener("click", () => abrirAcerto(aberto));
 
-  // --- aviso de meses em aberto
+  // --- aviso de meses em aberto e de formato incompatível
   const hoje = new Date();
   const pendentes = [];
   if (+f.ano === hoje.getFullYear()) {
     for (let m = 1; m <= hoje.getMonth() + 1; m++) if (porMes[m - 1] === 0) pendentes.push(MESES[m - 1]);
   }
+  const soFixas = mesesSoFixas(+f.ano);
   const box = $("avisoFechamento");
+  const partes = [];
+  if (ESTADO.erroRecorrentes) {
+    partes.push(`<strong>Lançar fixas está desativado:</strong> ${escapar(ESTADO.erroRecorrentes)}.`);
+  }
   if (pendentes.length && !f.cat && !f.quem) {
-    box.hidden = false;
-    box.innerHTML = `<strong>Mês em aberto:</strong> ainda não há lançamento de ${pendentes.join(", ")} de ${f.ano}.`;
-  } else box.hidden = true;
+    partes.push(`<strong>Mês em aberto:</strong> ainda não há lançamento de ${pendentes.join(", ")} de ${f.ano}.`);
+  }
+  if (soFixas.length && !f.cat && !f.quem) {
+    partes.push(`<strong>Meses só com fixas:</strong> ${soFixas.map(m => MESES[m - 1]).join(", ")}. ` +
+      `Os valores valem, mas as despesas do dia a dia não foram lançadas, então o total está incompleto.`);
+  }
+  if (partes.length) { box.hidden = false; box.innerHTML = partes.join("<br>"); }
+  else box.hidden = true;
 }
 
 /* ---------- eventos ---------- */
@@ -1875,9 +1938,10 @@ function montarFixas() {
     return;
   }
   const jaTem = itens.filter(i => i.duplicado).length;
-  $("fxAviso").innerHTML = jaTem
-    ? `<strong>${jaTem}</strong> despesa(s) já lançada(s) em ${MESES[mes - 1]}/${ano} vêm desmarcadas.`
-    : `Valores sugeridos a partir do último lançamento de cada despesa. Confirme os que variam.`;
+  $("fxAviso").innerHTML =
+    `<strong style="color:var(--cp-warning)">Confira quem pagou.</strong> O app sugere pelo último mês,
+     e trocar o pagador inverte o acerto. Valores e pagadores vêm do último lançamento de cada despesa.` +
+    (jaTem ? `<br><strong>${jaTem}</strong> já lançada(s) em ${MESES[mes - 1]}/${ano} vêm desmarcada(s).` : "");
   $("fxCorpo").innerHTML = itens.map((it, i) => `
     <tr data-i="${i}" class="${it.incluir ? "" : "fora"} ${it.varia ? "varia" : ""}">
       <td><input type="checkbox" class="inc" ${it.incluir ? "checked" : ""}></td>
@@ -1888,7 +1952,8 @@ function montarFixas() {
       <td class="num"><input type="number" class="val" step="0.01" min="0" style="text-align:right"
             value="${it.valor != null ? it.valor.toFixed(2) : ""}"></td>
       <td><select class="quem">${["Thiago", "Ana", "Casa"]
-            .map(p => `<option ${p === it.quem ? "selected" : ""}>${p}</option>`).join("")}</select></td>
+            .map(p => `<option ${p === it.quem ? "selected" : ""}>${p}</option>`).join("")}</select>
+        <span class="mini">pagou em ${escapar(it.origemValor)}</span></td>
       <td class="num"><input type="number" class="rat" step="1" min="0" max="100" style="text-align:right"
             value="${Math.round(it.rateio * 100)}"></td>
       <td>${escapar(it.parcela)}</td>
@@ -1897,6 +1962,7 @@ function montarFixas() {
     el.addEventListener("input", e => {
       const tr = e.target.closest("tr");
       tr.classList.toggle("fora", !tr.querySelector(".inc").checked);
+      if (e.target.classList.contains("quem")) tr.querySelector(".quem").classList.add("mexido");
       atualizarResumoFixas();
     }));
   atualizarResumoFixas();
