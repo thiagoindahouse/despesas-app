@@ -1,1 +1,1996 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Despesas</title></head><body><p>Preparando o app...</p></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Despesas Ana &amp; Thiago</title>
+<link rel="icon" href="favicon.ico">
+<script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("scoutTheme");
+    const theme = param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --cp-bg: #f7f4ef;
+  --cp-bg-elevated: #fcfbf8;
+  --cp-surface: #ffffff;
+  --cp-surface-soft: #f5f5f5;
+  --cp-border: #dedede;
+  --cp-border-strong: #919191;
+  --cp-text: #242424;
+  --cp-text-muted: #5c5c5c;
+  --cp-text-soft: #6f6f6f;
+  --cp-accent: #b11f4b;
+  --cp-accent-hover: #9a1a41;
+  --cp-accent-soft: rgba(177, 31, 75, 0.08);
+  --cp-accent-fg: #ffffff;
+  --cp-success: #16a34a;
+  --cp-danger: #dc2626;
+  --cp-warning: #f59e0b;
+  --cp-link: #0078d4;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+  --cp-overlay: rgba(255, 255, 255, 0.8);
+  --cp-panel: rgba(255, 255, 255, 0.86);
+  --cp-panel-strong: rgba(255, 255, 255, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.55);
+  --cp-highlight: rgba(177, 31, 75, 0.12);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --cp-bg: #3d3b3a;
+  --cp-bg-elevated: #343231;
+  --cp-surface: #292929;
+  --cp-surface-soft: #2e2e2e;
+  --cp-border: #474747;
+  --cp-border-strong: #5f5f5f;
+  --cp-text: #dedede;
+  --cp-text-muted: #919191;
+  --cp-text-soft: #b0b0b0;
+  --cp-accent: #fd8ea1;
+  --cp-accent-hover: #fb7b91;
+  --cp-accent-soft: rgba(253, 142, 161, 0.14);
+  --cp-accent-fg: #1a1a1a;
+  --cp-success: #4ade80;
+  --cp-danger: #f87171;
+  --cp-warning: #fbbf24;
+  --cp-link: #4da6ff;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --cp-overlay: rgba(41, 41, 41, 0.88);
+  --cp-panel: rgba(41, 41, 41, 0.72);
+  --cp-panel-strong: rgba(41, 41, 41, 0.96);
+  --cp-sheen: rgba(255, 255, 255, 0.04);
+  --cp-highlight: rgba(253, 142, 161, 0.12);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--cp-bg);
+  color: var(--cp-text);
+  font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+
+/* ---------- cabeçalho ---------- */
+header.top {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+header.top h1 { font-size: 1.5rem; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+header.top .sub { color: var(--cp-text-muted); font-size: 0.8125rem; margin-top: 2px; }
+.spacer { flex: 1 1 auto; }
+
+button, .btn {
+  font: inherit; cursor: pointer;
+  border: 1px solid var(--cp-border);
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  border-radius: 0.625rem;
+  padding: 8px 14px;
+  transition: background .12s, border-color .12s, transform .06s;
+}
+button:hover, .btn:hover { border-color: var(--cp-border-strong); }
+button:active { transform: translateY(1px); }
+button.primary {
+  background: var(--cp-accent); color: var(--cp-accent-fg);
+  border-color: var(--cp-accent);
+}
+button.primary:hover { background: var(--cp-accent-hover); border-color: var(--cp-accent-hover); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.ghost { background: transparent; }
+
+select, input[type="text"], input[type="number"], input[type="date"] {
+  font: inherit;
+  background: var(--cp-surface);
+  color: var(--cp-text);
+  border: 1px solid var(--cp-border);
+  border-radius: 0.625rem;
+  padding: 8px 10px;
+  width: 100%;
+}
+select:focus, input:focus { outline: 2px solid var(--cp-accent-soft); border-color: var(--cp-accent); }
+
+/* ---------- cartões ---------- */
+.card {
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  border-radius: 16px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+  padding: 18px 20px;
+}
+.card h2 {
+  margin: 0 0 14px; font-size: 0.9375rem; font-weight: 650;
+  display: flex; align-items: center; gap: 8px;
+}
+.card h2 .hint { font-weight: 400; color: var(--cp-text-muted); font-size: 0.8125rem; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.kpi { background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px; padding: 14px 16px;
+       box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14); }
+.kpi .lab { font-size: 0.75rem; color: var(--cp-text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.kpi .val { font-size: 1.5rem; font-weight: 650; margin-top: 6px; letter-spacing: -0.02em; }
+.kpi .note { font-size: 0.75rem; color: var(--cp-text-soft); margin-top: 4px; }
+.pos { color: var(--cp-success); }
+.neg { color: var(--cp-danger); }
+
+.grid2 { display: grid; grid-template-columns: 1.55fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 16px; margin-bottom: 16px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* ---------- tabela ---------- */
+table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+th { text-align: left; font-weight: 600; color: var(--cp-text-muted); padding: 7px 8px;
+     border-bottom: 1px solid var(--cp-border); white-space: nowrap; font-size: 0.75rem;
+     text-transform: uppercase; letter-spacing: .03em; }
+td { padding: 7px 8px; border-bottom: 1px solid var(--cp-border); }
+tbody tr:hover { background: var(--cp-surface-soft); }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.6875rem;
+       background: var(--cp-accent-soft); color: var(--cp-accent); font-weight: 600; }
+.tag.muted { background: var(--cp-surface-soft); color: var(--cp-text-muted); }
+.scroll { max-height: 420px; overflow-y: auto; }
+
+/* ---------- barras ---------- */
+.bar-row { display: grid; grid-template-columns: 116px 1fr 92px; align-items: center; gap: 10px; margin-bottom: 7px; }
+.bar-row .nm { font-size: 0.8125rem; color: var(--cp-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { background: var(--cp-surface-soft); border-radius: 999px; height: 9px; overflow: hidden; }
+.bar-fill { background: var(--cp-accent); height: 100%; border-radius: 999px; }
+
+/* ---------- estado vazio ---------- */
+.empty { text-align: center; padding: 56px 24px; }
+.empty h2 { font-size: 1.25rem; margin: 0 0 8px; }
+.empty p { color: var(--cp-text-muted); max-width: 520px; margin: 0 auto 20px; }
+.steps { text-align: left; max-width: 560px; margin: 0 auto 24px; color: var(--cp-text-muted); font-size: 0.875rem; }
+.steps li { margin-bottom: 6px; }
+
+/* ---------- modal ---------- */
+.overlay { position: fixed; inset: 0; background: var(--cp-overlay); backdrop-filter: blur(3px);
+           display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+.overlay[hidden] { display: none; }
+.modal { background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px;
+         box-shadow: var(--cp-shadow); width: 100%; max-width: 560px; padding: 22px 24px; max-height: 92vh; overflow-y: auto; }
+.modal.larga { max-width: 860px; }
+.modal h2 { margin: 0 0 16px; font-size: 1.125rem; }
+#fxTabela input[type="number"], #fxTabela select {
+  padding: 4px 6px; border-radius: 6px; font-size: 0.8125rem; }
+#fxTabela td { padding: 5px 6px; }
+#fxTabela tr.fora { opacity: .42; }
+#fxTabela tr.varia input.val { border-color: var(--cp-warning); }
+.chip { display: inline-block; font-size: 0.6875rem; padding: 0 6px; border-radius: 999px;
+        background: var(--cp-surface-soft); color: var(--cp-text-muted); margin-left: 6px; }
+.item-arquivo { display: block; width: 100%; text-align: left; margin-bottom: 6px; padding: 10px 12px; }
+.item-arquivo .nm { font-weight: 600; }
+.item-arquivo .cam { display: block; font-size: 0.75rem; color: var(--cp-text-muted); margin-top: 2px; }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.frow.one { grid-template-columns: 1fr; }
+.field label { display: block; font-size: 0.75rem; color: var(--cp-text-muted); margin-bottom: 4px;
+               text-transform: uppercase; letter-spacing: .03em; }
+.actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+         background: var(--cp-panel-strong); border: 1px solid var(--cp-border); color: var(--cp-text);
+         padding: 11px 18px; border-radius: 0.625rem; box-shadow: var(--cp-shadow); z-index: 60;
+         font-size: 0.875rem; max-width: 90vw; }
+.toast[hidden] { display: none; }
+.toast.err { border-color: var(--cp-danger); color: var(--cp-danger); }
+.toast.ok { border-color: var(--cp-success); }
+
+.filebar { display: flex; align-items: center; gap: 10px; font-size: 0.8125rem; color: var(--cp-text-muted);
+           background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 0.625rem;
+           padding: 7px 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cp-success); flex: none; }
+code { font-family: Consolas, "Courier New", Courier, monospace; font-size: 0.8125rem;
+       background: var(--cp-surface-soft); padding: 1px 5px; border-radius: 4px; }
+.warn { background: var(--cp-accent-soft); border: 1px solid var(--cp-accent); color: var(--cp-text);
+        border-radius: 0.625rem; padding: 10px 14px; font-size: 0.8125rem; margin-bottom: 16px; }
+.legend { font-size: 0.75rem; color: var(--cp-text-muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Despesas Ana &amp; Thiago</h1>
+      <div class="sub" id="subtitulo">Painel ligado direto na planilha do OneDrive</div>
+    </div>
+    <div class="spacer"></div>
+    <div id="barraArquivo" hidden class="filebar">
+      <span class="dot"></span><span id="nomeArquivo"></span>
+    </div>
+    <button id="btnAbrir">Abrir planilha</button>
+    <button id="btnRecarregar" hidden>Recarregar</button>
+    <button id="btnFixas" hidden>Lançar fixas do mês</button>
+    <button id="btnNovo" class="primary" hidden>+ Novo lançamento</button>
+    <button id="btnSair" hidden class="ghost" title="Sair da conta Microsoft">Sair</button>
+  </header>
+
+  <section id="telaVazia" class="card empty">
+    <h2 id="tvTitulo">Entrar com a conta Microsoft</h2>
+    <p id="tvTexto">O app lê e grava a planilha direto no seu OneDrive. Nada é salvo neste site
+       e nenhum dado financeiro sai do seu OneDrive.</p>
+    <ol class="steps" id="tvPassos">
+      <li>Entre com a conta Microsoft onde está a planilha.</li>
+      <li>Escolha o arquivo <code>Despesas Ana e Thiago.xlsx</code>.</li>
+      <li>Pronto. Da próxima vez ele já abre direto.</li>
+    </ol>
+    <button id="btnEntrar" class="primary">Entrar com a Microsoft</button>
+    <div style="margin-top:14px">
+      <button id="btnLocal" class="ghost">Usar um arquivo do computador</button>
+    </div>
+    <p class="legend" id="tvErro" style="color:var(--cp-danger);margin-top:14px"></p>
+  </section>
+
+  <main id="app" hidden>
+    <div id="avisoFechamento" class="warn" hidden></div>
+
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+      <div style="min-width:120px"><label style="font-size:.75rem;color:var(--cp-text-muted)">Ano</label>
+        <select id="selAno"></select></div>
+      <div style="min-width:150px"><label style="font-size:.75rem;color:var(--cp-text-muted)">Mês</label>
+        <select id="selMes"></select></div>
+      <div style="min-width:170px"><label style="font-size:.75rem;color:var(--cp-text-muted)">Categoria</label>
+        <select id="selCat"></select></div>
+      <div style="min-width:150px"><label style="font-size:.75rem;color:var(--cp-text-muted)">Quem pagou</label>
+        <select id="selQuem"></select></div>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Evolução mensal <span class="hint" id="tituloEvolucao"></span></h2>
+        <div id="grafico"></div>
+      </div>
+      <div class="card">
+        <h2>Por categoria <span class="hint" id="tituloCategorias"></span></h2>
+        <div id="barras"></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Lançamentos <span class="hint" id="contagemLanc"></span></h2>
+        <div class="scroll">
+          <table>
+            <thead><tr>
+              <th>Data</th><th>Tipo</th><th>Categoria</th><th>Descrição</th>
+              <th class="num">Valor</th><th>Pagou</th><th class="num">Ana deve</th>
+            </tr></thead>
+            <tbody id="corpoTabela"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Acerto do período</h2>
+        <div id="acerto"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <form class="modal" id="formNovo">
+    <h2>Novo lançamento</h2>
+    <div class="frow">
+      <div class="field"><label for="fData">Data</label><input type="date" id="fData" required></div>
+      <div class="field"><label for="fTipo">Tipo</label><select id="fTipo"></select></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label for="fCat">Categoria</label>
+        <input type="text" id="fCat" list="listaCategorias" autocomplete="off" required
+               placeholder="escolha ou digite uma nova">
+        <datalist id="listaCategorias"></datalist></div>
+      <div class="field"><label for="fParcela">Parcela (opcional)</label><input type="text" id="fParcela" placeholder="6/36"></div>
+    </div>
+    <div class="frow one">
+      <div class="field"><label for="fDesc">Descrição</label><input type="text" id="fDesc" required placeholder="Ex.: Condomínio"></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label for="fValor">Valor (R$)</label><input type="number" id="fValor" step="0.01" min="0" required></div>
+      <div class="field"><label for="fQuem">Quem pagou</label><select id="fQuem"></select></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label for="fRateio">% do Thiago</label><input type="number" id="fRateio" step="1" min="0" max="100" value="50"></div>
+      <div class="field"><label for="fObs">Observação</label><input type="text" id="fObs"></div>
+    </div>
+    <div id="previaRateio" class="legend"></div>
+    <div class="actions">
+      <button type="button" class="ghost" id="btnCancelar">Cancelar</button>
+      <button type="submit" class="primary" id="btnSalvar">Gravar na planilha</button>
+    </div>
+  </form>
+</div>
+
+<div class="overlay" id="overlayFixas" hidden>
+  <form class="modal larga" id="formFixas">
+    <h2>Lançar fixas do mês</h2>
+    <div class="frow">
+      <div class="field"><label for="fxMes">Mês de competência</label><select id="fxMes"></select></div>
+      <div class="field"><label for="fxDia">Dia a usar nos lançamentos</label>
+        <input type="number" id="fxDia" min="1" max="31" value="1"></div>
+    </div>
+    <div id="fxAviso" class="legend"></div>
+    <div class="scroll" style="margin-top:8px">
+      <table id="fxTabela">
+        <thead><tr>
+          <th style="width:28px"></th><th>Descrição</th><th>Categoria</th>
+          <th class="num" style="width:120px">Valor</th><th style="width:110px">Quem pagou</th>
+          <th class="num" style="width:78px">% Thiago</th><th style="width:70px">Parcela</th>
+        </tr></thead>
+        <tbody id="fxCorpo"></tbody>
+      </table>
+    </div>
+    <div id="fxResumo" class="legend" style="margin-top:10px"></div>
+    <div class="actions">
+      <button type="button" class="ghost" id="fxCancelar">Cancelar</button>
+      <button type="submit" class="primary" id="fxGravar">Lançar selecionadas</button>
+    </div>
+  </form>
+</div>
+
+<div class="overlay" id="overlayAcerto" hidden>
+  <form class="modal" id="formAcerto">
+    <h2>Registrar transferência</h2>
+    <div id="acSugestao" class="legend" style="margin-bottom:14px"></div>
+    <div class="frow">
+      <div class="field"><label for="acData">Data</label><input type="date" id="acData" required></div>
+      <div class="field"><label for="acValor">Valor (R$)</label>
+        <input type="number" id="acValor" step="0.01" min="0.01" required></div>
+    </div>
+    <div class="frow">
+      <div class="field"><label for="acDe">De</label><select id="acDe"></select></div>
+      <div class="field"><label for="acPara">Para</label><select id="acPara"></select></div>
+    </div>
+    <div class="frow one">
+      <div class="field"><label for="acRef">Referente a</label>
+        <input type="text" id="acRef" placeholder="Ex.: acerto de setembro/2026"></div>
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" id="acCancelar">Cancelar</button>
+      <button type="submit" class="primary" id="acGravar">Registrar</button>
+    </div>
+  </form>
+</div>
+
+<div class="overlay" id="overlayArquivo" hidden>
+  <div class="modal larga">
+    <h2>Escolher a planilha no OneDrive</h2>
+    <div class="frow" style="grid-template-columns:1fr auto">
+      <div class="field"><label for="odBusca">Buscar por nome</label>
+        <input type="text" id="odBusca" value="Despesas" placeholder="parte do nome do arquivo"></div>
+      <div class="field"><label>&nbsp;</label><button type="button" id="odBuscar">Buscar</button></div>
+    </div>
+    <div class="scroll" id="odLista" style="margin:6px 0 14px"></div>
+    <details>
+      <summary class="legend" style="cursor:pointer">Não apareceu? Cole o link de compartilhamento</summary>
+      <div class="frow" style="grid-template-columns:1fr auto;margin-top:10px">
+        <div class="field"><input type="text" id="odLink" placeholder="https://1drv.ms/x/..."></div>
+        <div class="field"><button type="button" id="odUsarLink">Usar este link</button></div>
+      </div>
+    </details>
+    <div class="actions">
+      <button type="button" class="ghost" id="odCancelar">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   1. CRC32 — necessário para escrever o ZIP do .xlsx
+   ============================================================ */
+const CRC_TABELA = (() => {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[i] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(buf) {
+  let c = 0xffffffff;
+  for (let i = 0; i < buf.length; i++) c = CRC_TABELA[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+/* ============================================================
+   2. ZIP — leitura e escrita usando as APIs nativas do navegador
+   (DecompressionStream / CompressionStream), sem biblioteca externa
+   ============================================================ */
+async function inflarRaw(bytes) {
+  const ds = new DecompressionStream("deflate-raw");
+  const stream = new Blob([bytes]).stream().pipeThrough(ds);
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function desinflarRaw(bytes) {
+  const cs = new CompressionStream("deflate-raw");
+  const stream = new Blob([bytes]).stream().pipeThrough(cs);
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function lerZip(arrayBuffer) {
+  const dv = new DataView(arrayBuffer);
+  const u8 = new Uint8Array(arrayBuffer);
+  // localiza o End Of Central Directory
+  let eocd = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 66000); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("Arquivo .xlsx inválido (ZIP sem diretório central).");
+  const total = dv.getUint16(eocd + 10, true);
+  let p = dv.getUint32(eocd + 16, true);
+  const entradas = [];
+  const td = new TextDecoder();
+  for (let n = 0; n < total; n++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) throw new Error("Diretório central corrompido.");
+    const metodo = dv.getUint16(p + 10, true);
+    const tamComp = dv.getUint32(p + 20, true);
+    const tamBruto = dv.getUint32(p + 24, true);
+    const nLen = dv.getUint16(p + 28, true);
+    const eLen = dv.getUint16(p + 30, true);
+    const cLen = dv.getUint16(p + 32, true);
+    const offLocal = dv.getUint32(p + 42, true);
+    const nome = td.decode(u8.subarray(p + 46, p + 46 + nLen));
+    // cabeçalho local determina onde os dados realmente começam
+    const nLen2 = dv.getUint16(offLocal + 26, true);
+    const eLen2 = dv.getUint16(offLocal + 28, true);
+    const ini = offLocal + 30 + nLen2 + eLen2;
+    entradas.push({ nome, metodo, dados: u8.subarray(ini, ini + tamComp), tamBruto });
+    p += 46 + nLen + eLen + cLen;
+  }
+  const partes = new Map();
+  for (const e of entradas) {
+    const bruto = e.metodo === 0 ? e.dados.slice() : await inflarRaw(e.dados);
+    partes.set(e.nome, bruto);
+  }
+  return { ordem: entradas.map(e => e.nome), partes };
+}
+
+async function escreverZip(ordem, partes) {
+  const te = new TextEncoder();
+  const locais = [];
+  const central = [];
+  let offset = 0;
+  for (const nome of ordem) {
+    const bruto = partes.get(nome);
+    const nomeBytes = te.encode(nome);
+    const comp = await desinflarRaw(bruto);
+    const crc = crc32(bruto);
+    const lh = new Uint8Array(30 + nomeBytes.length);
+    const ldv = new DataView(lh.buffer);
+    ldv.setUint32(0, 0x04034b50, true);
+    ldv.setUint16(4, 20, true);
+    ldv.setUint16(6, 0x0800, true);      // UTF-8
+    ldv.setUint16(8, 8, true);           // deflate
+    ldv.setUint16(10, 0, true);
+    ldv.setUint16(12, 0x21, true);
+    ldv.setUint32(14, crc, true);
+    ldv.setUint32(18, comp.length, true);
+    ldv.setUint32(22, bruto.length, true);
+    ldv.setUint16(26, nomeBytes.length, true);
+    ldv.setUint16(28, 0, true);
+    lh.set(nomeBytes, 30);
+    locais.push(lh, comp);
+
+    const ch = new Uint8Array(46 + nomeBytes.length);
+    const cdv = new DataView(ch.buffer);
+    cdv.setUint32(0, 0x02014b50, true);
+    cdv.setUint16(4, 20, true);
+    cdv.setUint16(6, 20, true);
+    cdv.setUint16(8, 0x0800, true);
+    cdv.setUint16(10, 8, true);
+    cdv.setUint16(12, 0, true);
+    cdv.setUint16(14, 0x21, true);
+    cdv.setUint32(16, crc, true);
+    cdv.setUint32(20, comp.length, true);
+    cdv.setUint32(24, bruto.length, true);
+    cdv.setUint16(28, nomeBytes.length, true);
+    cdv.setUint32(42, offset, true);
+    ch.set(nomeBytes, 46);
+    central.push(ch);
+    offset += lh.length + comp.length;
+  }
+  const inicioCentral = offset;
+  let tamCentral = 0;
+  for (const c of central) tamCentral += c.length;
+  const eocd = new Uint8Array(22);
+  const edv = new DataView(eocd.buffer);
+  edv.setUint32(0, 0x06054b50, true);
+  edv.setUint16(8, ordem.length, true);
+  edv.setUint16(10, ordem.length, true);
+  edv.setUint32(12, tamCentral, true);
+  edv.setUint32(16, inicioCentral, true);
+  return new Blob([...locais, ...central, eocd], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  });
+}
+
+/* ============================================================
+   3. XLSX — leitura da aba Lançamentos
+   ============================================================ */
+const td = new TextDecoder();
+const te = new TextEncoder();
+const txt = b => td.decode(b);
+
+function letraParaIndice(ref) {
+  const m = /^([A-Z]+)/.exec(ref);
+  let n = 0;
+  for (const ch of m[1]) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n;
+}
+function indiceParaLetra(n) {
+  let s = "";
+  while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = (n - r - 1) / 26; }
+  return s;
+}
+/* Arredondamento igual ao do Excel: metade sempre para longe de zero.
+   Math.round(x*100)/100 NAO serve: 9749.095*100 vira 974909.4999... em ponto
+   flutuante e arredonda para baixo, enquanto o Excel devolve 9749.10. Passar
+   pela notacao exponencial evita o erro de multiplicacao. */
+function round2(x) {
+  if (!Number.isFinite(x)) return 0;
+  const sinal = x < 0 ? -1 : 1;
+  const abs = Math.abs(x);
+  const escalado = Number(abs.toString() + "e+2");
+  if (!Number.isFinite(escalado)) return sinal * Math.round(abs * 100) / 100;
+  return sinal * Number(Math.round(escalado).toString() + "e-2");
+}
+function serialParaData(n) {
+  // trunca em vez de arredondar: serial com hora >= 12:00 pulava para o dia seguinte
+  return new Date(Date.UTC(1899, 11, 30) + Math.floor(n) * 86400000);
+}
+function dataParaSerial(d) {
+  return Math.round((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(1899, 11, 30)) / 86400000);
+}
+function desescapar(s) {
+  return s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+          .replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, d) => String.fromCharCode(+d))
+          .replace(/&amp;/g, "&");
+}
+// XML 1.0 nao aceita caracteres de controle (exceto tab, LF e CR) nem surrogate
+// solto. Texto colado de PDF ou extrato costuma trazer esses bytes invisiveis, e
+// eles corrompem a planilha para o Excel mesmo que o navegador leia sem reclamar.
+const RX_XML_PROIBIDO = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g;
+function limparXml(s) {
+  return String(s)
+    .replace(RX_XML_PROIBIDO, "")
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
+    .replace(/(^|[^\uD800-\uDBFF])([\uDC00-\uDFFF])/g, "$1");
+}
+function escapar(s) {
+  return limparXml(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                     .replace(/"/g, "&quot;");
+}
+
+function lerSharedStrings(partes) {
+  const raw = partes.get("xl/sharedStrings.xml");
+  if (!raw) return [];
+  const xml = txt(raw);
+  const out = [];
+  for (const m of xml.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)) {
+    let s = "";
+    for (const t of m[1].matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)) s += desescapar(t[1]);
+    out.push(s);
+  }
+  return out;
+}
+
+function acharAba(partes, nomeAba) {
+  const wbXml = txt(partes.get("xl/workbook.xml"));
+  const relsXml = txt(partes.get("xl/_rels/workbook.xml.rels"));
+  const rels = new Map();
+  // a ordem dos atributos no XML nao e garantida: le cada tag e extrai os dois
+  for (const m of relsXml.matchAll(/<Relationship\b[^>]*>/g)) {
+    const id = /\bId="([^"]+)"/.exec(m[0]);
+    const alvo = /\bTarget="([^"]+)"/.exec(m[0]);
+    if (id && alvo) rels.set(id[1], alvo[1]);
+  }
+  for (const m of wbXml.matchAll(/<sheet\b[^>]*?\/?>/g)) {
+    const nome = /\bname="([^"]*)"/.exec(m[0]);
+    const rid = /\br:id="([^"]*)"/.exec(m[0]);
+    if (!nome || !rid) continue;
+    if (desescapar(nome[1]) === nomeAba) {
+      let alvo = rels.get(rid[1]);
+      if (!alvo) continue;
+      if (alvo.startsWith("/")) return alvo.slice(1);          // alvo absoluto do pacote
+      if (!alvo.startsWith("xl/")) alvo = "xl/" + alvo;
+      return alvo;
+    }
+  }
+  return null;
+}
+function acharAbaLancamentos(partes) {
+  const a = acharAba(partes, "Lançamentos");
+  if (!a) throw new Error('Não encontrei a aba "Lançamentos" nesta planilha.');
+  return a;
+}
+
+/* Le a aba Recorrentes: e ela que alimenta o botao "Lançar fixas do mês".
+   Le apenas o intervalo da tabela tbRecorrentes, para que as notas escritas
+   abaixo dela nunca sejam confundidas com despesas. */
+function lerRecorrentes(ordem, partes) {
+  const caminho = acharAba(partes, "Recorrentes");
+  if (!caminho || !partes.has(caminho)) return [];
+  const tab = acharTabela(ordem, partes, "tbRecorrentes");
+  const ss = lerSharedStrings(partes);
+  const xml = txt(partes.get(caminho));
+  const corpo = /<sheetData\b[^>]*>([\s\S]*?)<\/sheetData>/.exec(xml);
+  const out = [];
+  if (!corpo) return out;
+  const primeira = tab ? tab.primeira + 1 : 6;
+  const ultima = tab ? tab.ultima : Infinity;
+  for (const rm of corpo[1].matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)) {
+    const nr = /\br="(\d+)"/.exec(rm[1] || "");
+    if (!nr) continue;
+    const linha = +nr[1];
+    if (linha < primeira || linha > ultima) continue;
+    const c = {};
+    for (const cm of (rm[2] || "").matchAll(/<c\b[^>]*\/>|<c\b[^>]*>[\s\S]*?<\/c>/g)) {
+      const ref = /\br="([A-Z]+\d+)"/.exec(cm[0]);
+      if (ref) c[letraParaIndice(ref[1])] = valorDaCelula(cm[0], ss);
+    }
+    const desc = c[2];
+    if (typeof desc !== "string" || !desc.trim()) continue;
+    const ativo = String(c[11] ?? "Sim").trim().toLowerCase();
+    if (ativo === "não" || ativo === "nao" || ativo === "n") continue;
+    out.push({
+      descricao: desc.trim(),
+      categoria: c[3] || "Outros",
+      tipo: c[4] || "Fixa",
+      quem: c[5] || "Thiago",
+      rateio: typeof c[6] === "number" ? c[6] : 0.5,
+      valor: typeof c[7] === "number" ? c[7] : null,
+      varia: /^s/i.test(String(c[8] ?? "")),
+      inicio: typeof c[9] === "number" ? serialParaData(c[9]) : null,
+      parcelas: typeof c[10] === "number" ? c[10] : null,
+    });
+  }
+  return out;
+}
+
+/* Monta a lista de fixas de um mês: calcula a parcela, sugere o valor a partir
+   do último lançamento real daquela despesa e marca o que já foi lançado. */
+function fixasDoMes(ano, mes) {
+  const alvo = ano * 12 + (mes - 1);
+  const jaLancado = new Set(ESTADO.dados
+    .filter(l => l.ano === ano && l.mes === mes)
+    .map(l => l.descricao.toLocaleLowerCase("pt-BR")));
+  const itens = [];
+  for (const rec of ESTADO.recorrentes) {
+    let parcela = "";
+    if (rec.inicio && rec.parcelas) {
+      const ini = rec.inicio.getUTCFullYear() * 12 + rec.inicio.getUTCMonth();
+      const n = alvo - ini + 1;
+      if (n < 1 || n > rec.parcelas) continue;   // fora do ciclo de parcelas
+      parcela = `${n}/${rec.parcelas}`;
+    }
+    // valor sugerido: a ocorrência mais recente ANTES do mês alvo
+    const anteriores = ESTADO.dados
+      .filter(l => l.descricao === rec.descricao && l.ano * 12 + (l.mes - 1) < alvo)
+      .sort((a, b) => (a.ano * 12 + a.mes) - (b.ano * 12 + b.mes));
+    const ultimo = anteriores[anteriores.length - 1];
+    itens.push({
+      ...rec,
+      parcela,
+      valor: ultimo ? ultimo.valor : rec.valor,
+      quem: ultimo ? (ultimo.quem || rec.quem) : rec.quem,
+      origemValor: ultimo ? `${MES_CURTO[ultimo.mes - 1]}/${ultimo.ano}` : "referência",
+      duplicado: jaLancado.has(rec.descricao.toLocaleLowerCase("pt-BR")),
+      incluir: !jaLancado.has(rec.descricao.toLocaleLowerCase("pt-BR")),
+    });
+  }
+  return itens;
+}
+/* Le a aba Acertos: sem isso o app diria para sempre "transfere R$ X",
+   mesmo depois de o dinheiro ter sido pago. */
+function lerAcertos(partes) {
+  const caminho = acharAba(partes, "Acertos");
+  if (!caminho || !partes.has(caminho)) return [];
+  const ss = lerSharedStrings(partes);
+  const xml = txt(partes.get(caminho));
+  const corpo = /<sheetData\b[^>]*>([\s\S]*?)<\/sheetData>/.exec(xml);
+  const out = [];
+  if (!corpo) return out;
+  for (const rm of corpo[1].matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)) {
+    const nr = /\br="(\d+)"/.exec(rm[1] || "");
+    if (!nr || +nr[1] < 6) continue;
+    const cels = {};
+    for (const cm of (rm[2] || "").matchAll(/<c\b[^>]*\/>|<c\b[^>]*>[\s\S]*?<\/c>/g)) {
+      const ref = /\br="([A-Z]+\d+)"/.exec(cm[0]);
+      if (ref) cels[letraParaIndice(ref[1])] = valorDaCelula(cm[0], ss);
+    }
+    const data = cels[2], de = cels[3], para = cels[4], valor = cels[5];
+    if (typeof valor !== "number" || !valor) continue;
+    out.push({
+      data: typeof data === "number" ? serialParaData(data) : null,
+      de: de || "", para: para || "", valor,
+    });
+  }
+  return out;
+}
+
+/* A tabela e a fonte da verdade sobre onde a proxima linha entra.
+   Usar a maior linha da planilha faria a tabela engolir qualquer conteudo
+   que exista abaixo dela. */
+function acharTabela(ordem, partes, displayName = "tbLancamentos") {
+  for (const nome of ordem) {
+    if (!nome.startsWith("xl/tables/")) continue;
+    const tx = txt(partes.get(nome));
+    if (!new RegExp(`displayName="${displayName}"`).test(tx)) continue;
+    const ref = /\bref="([A-Z]+)(\d+):([A-Z]+)(\d+)"/.exec(tx);
+    if (!ref) continue;
+    const colunas = [...tx.matchAll(/<tableColumn\b[^>]*?\bname="([^"]*)"/g)]
+      .map(m => desescapar(m[1]));
+    return { parte: nome, primeira: +ref[2], ultima: +ref[4],
+             colIni: letraParaIndice(ref[1] + "1"), colFim: letraParaIndice(ref[3] + "1"), colunas };
+  }
+  return null;
+}
+
+function valorDaCelula(celXml, ss) {
+  const tipo = /\bt="([^"]+)"/.exec(celXml);
+  const t = tipo ? tipo[1] : "n";
+  if (t === "inlineStr") {
+    let s = "";
+    for (const m of celXml.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)) s += desescapar(m[1]);
+    return s;
+  }
+  const v = /<v>([\s\S]*?)<\/v>/.exec(celXml);
+  if (!v || v[1] === "") return null;
+  if (t === "s") return ss[+v[1]] ?? "";
+  if (t === "str" || t === "e") return desescapar(v[1]);
+  if (t === "b") return v[1] === "1";
+  return parseFloat(v[1]);
+}
+
+const COL = { data:1, tipo:5, categoria:6, descricao:7, parcela:8, valor:9, quem:10, rateio:11, obs:15 };
+
+function lerLancamentos(partes) {
+  const caminho = acharAbaLancamentos(partes);
+  const ss = lerSharedStrings(partes);
+  const xml = txt(partes.get(caminho));
+  const corpo = /<sheetData\b[^>]*>([\s\S]*?)<\/sheetData>/.exec(xml);
+  const linhas = [];
+  let ultimaLinha = 1;
+  const estilos = {};
+  if (corpo) {
+    for (const rm of corpo[1].matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>|<row\b([^>]*)\/>/g)) {
+      const attrs = rm[1] ?? rm[3] ?? "";
+      const nr = /\br="(\d+)"/.exec(attrs);
+      const n = nr ? +nr[1] : 0;
+      if (n > ultimaLinha) ultimaLinha = n;
+      if (n <= 1) continue;
+      const cels = {};
+      for (const cm of (rm[2] || "").matchAll(/<c\b[^>]*\/>|<c\b[^>]*>[\s\S]*?<\/c>/g)) {
+        const ref = /\br="([A-Z]+\d+)"/.exec(cm[0]);
+        if (!ref) continue;
+        const idx = letraParaIndice(ref[1]);
+        cels[idx] = valorDaCelula(cm[0], ss);
+        const s = /\bs="(\d+)"/.exec(cm[0]);
+        if (s && estilos[idx] === undefined) estilos[idx] = s[1];
+      }
+      const serial = cels[COL.data];
+      const valor = cels[COL.valor];
+      if (typeof serial !== "number" || typeof valor !== "number") continue;
+      const d = serialParaData(serial);
+      const rateio = typeof cels[COL.rateio] === "number" ? cels[COL.rateio] : 0.5;
+      const quem = cels[COL.quem] || "";
+      const cotaT = round2(valor * rateio);
+      const cotaA = round2(valor - cotaT);
+      linhas.push({
+        linha: n,
+        data: d,
+        ano: d.getUTCFullYear(),
+        mes: d.getUTCMonth() + 1,
+        tipo: cels[COL.tipo] || "",
+        categoria: cels[COL.categoria] || "Outros",
+        descricao: cels[COL.descricao] || "",
+        parcela: cels[COL.parcela] || "",
+        valor, quem, rateio, cotaT, cotaA,
+        anaDeve: quem === "Thiago" ? cotaA : (quem === "Ana" ? -cotaT : 0),
+      });
+    }
+  }
+  return { caminho, linhas, ultimaLinha, estilos };
+}
+
+/* ============================================================
+   4. XLSX — gravação de uma nova linha
+   ============================================================ */
+function refEstruturada(col) { return `tbLancamentos[[#This Row],[${col}]]`; }
+
+function montarLinhaXml(n, reg, estilos) {
+  const s = i => (estilos[i] !== undefined ? ` s="${estilos[i]}"` : "");
+  const L = i => indiceParaLetra(i) + n;
+  const cels = [];
+  const num = (i, v) => cels.push(`<c r="${L(i)}"${s(i)}><v>${v}</v></c>`);
+  const str = (i, v) => { if (v !== "" && v != null)
+      cels.push(`<c r="${L(i)}"${s(i)} t="inlineStr"><is><t xml:space="preserve">${escapar(v)}</t></is></c>`); };
+  const frm = (i, f, v) => cels.push(`<c r="${L(i)}"${s(i)}><f>${escapar(f)}</f><v>${v}</v></c>`);
+
+  num(1, dataParaSerial(reg.data));
+  frm(2, `YEAR(${refEstruturada("Data")})`, reg.data.getFullYear());
+  frm(3, `MONTH(${refEstruturada("Data")})`, reg.data.getMonth() + 1);
+  const comp = `${reg.data.getFullYear()}-${String(reg.data.getMonth() + 1).padStart(2, "0")}`;
+  cels.push(`<c r="${L(4)}"${s(4)} t="str"><f>${escapar(
+    `${refEstruturada("Ano")}&amp;"-"&amp;TEXT(${refEstruturada("Mês")},"00")`
+      .replace(/&amp;/g, "&"))}</f><v>${comp}</v></c>`);
+  str(5, reg.tipo);
+  str(6, reg.categoria);
+  str(7, reg.descricao);
+  str(8, reg.parcela);
+  num(9, reg.valor);
+  str(10, reg.quem);
+  num(11, reg.rateio);
+  const cotaT = round2(reg.valor * reg.rateio);
+  const cotaA = round2(reg.valor - cotaT);
+  const anaDeve = reg.quem === "Thiago" ? cotaA : (reg.quem === "Ana" ? -cotaT : 0);
+  frm(12, `ROUND(${refEstruturada("Valor")}*${refEstruturada("% Thiago")},2)`, cotaT);
+  frm(13, `ROUND(${refEstruturada("Valor")}-${refEstruturada("Cota Thiago")},2)`, cotaA);
+  frm(14, `IF(${refEstruturada("Quem Pagou")}="Thiago",${refEstruturada("Cota Ana")},` +
+          `IF(${refEstruturada("Quem Pagou")}="Ana",-${refEstruturada("Cota Thiago")},0))`, anaDeve);
+  str(15, reg.obs);
+  return `<row r="${n}" spans="1:15">${cels.join("")}</row>`;
+}
+
+function atualizarRef(xml, atributo, novaUltima) {
+  return xml.replace(new RegExp(`(${atributo}=")([A-Z]+\\d+:[A-Z]+)(\\d+)(")`, "g"),
+                     (_, a, b, c, d) => a + b + novaUltima + d);
+}
+
+const CABECALHO_ESPERADO = ["Data", "Ano", "Mês", "Competência", "Tipo", "Categoria", "Descrição",
+  "Parcela", "Valor", "Quem Pagou", "% Thiago", "Cota Thiago", "Cota Ana", "Ana deve Thiago", "Observação"];
+
+/* Grava N lançamentos numa única leitura-escrita do arquivo. Fazer N gravações
+   separadas seria N vezes mais lento e abriria N janelas para conflito. */
+async function gravarLancamentos(fonte, regs, versaoEsperada) {
+  if (!regs.length) return [];
+  const { buf, versao } = await fonte.ler();
+  if (versaoEsperada && versao !== versaoEsperada) {
+    throw new Error("a planilha mudou desde que foi carregada (Excel, OneDrive ou outro " +
+                    "computador). Clique em Recarregar e lance de novo, para não sobrescrever o que o outro gravou");
+  }
+  const { ordem, partes } = await lerZip(buf);
+  const caminho = acharAbaLancamentos(partes);
+  const tabela = acharTabela(ordem, partes);
+  if (!tabela) throw new Error("não encontrei a tabela tbLancamentos nesta planilha");
+  if (tabela.colunas.length !== CABECALHO_ESPERADO.length ||
+      tabela.colunas.some((c, i) => c !== CABECALHO_ESPERADO[i])) {
+    throw new Error("as colunas da tabela mudaram; não vou gravar para não bagunçar os dados");
+  }
+
+  let xml = txt(partes.get(caminho));
+  const primeira = tabela.ultima + 1;
+  const ultima = tabela.ultima + regs.length;
+  const { estilos } = lerLancamentos(partes);
+
+  // nao avanca por cima de nada que exista abaixo da tabela
+  const existentes = [...xml.matchAll(/<row\b[^>]*?\br="(\d+)"/g)].map(m => +m[1]);
+  const abaixo = existentes.filter(n => n >= primeira);
+  if (abaixo.length) {
+    throw new Error(`a linha ${Math.min(...abaixo)} da aba Lançamentos está ocupada fora da tabela; ` +
+                    "limpe ou mova esse conteúdo antes de gravar");
+  }
+
+  const bloco = regs.map((reg, i) => montarLinhaXml(primeira + i, reg, estilos)).join("");
+  if (/<sheetData\s*\/>/.test(xml)) {
+    xml = xml.replace(/<sheetData\s*\/>/, `<sheetData>${bloco}</sheetData>`);
+  } else {
+    xml = xml.replace("</sheetData>", bloco + "</sheetData>");
+  }
+  xml = atualizarRef(xml, "dimension ref", ultima);
+  partes.set(caminho, te.encode(xml));
+
+  let tx = txt(partes.get(tabela.parte));
+  tx = atualizarRef(tx, "ref", ultima);
+  partes.set(tabela.parte, te.encode(tx));
+
+  // forca o Excel a recalcular ao abrir
+  let wbx = txt(partes.get("xl/workbook.xml"));
+  if (/<calcPr\b[^>]*\/?>/.test(wbx)) {
+    wbx = wbx.replace(/<calcPr\b[^>]*?\/?>/, m => {
+      const limpo = m.replace(/\s*fullCalcOnLoad="[^"]*"/, "");
+      return limpo.replace(/\/?>$/, ' fullCalcOnLoad="1"/>');
+    });
+  } else {
+    wbx = wbx.replace("</workbook>", '<calcPr calcId="124519" fullCalcOnLoad="1"/></workbook>');
+  }
+  partes.set("xl/workbook.xml", te.encode(wbx));
+  // o calcChain fica invalido depois de inserir linha; o Excel o reconstroi sozinho
+  const semCalcChain = ordem.filter(n => n !== "xl/calcChain.xml");
+  partes.delete("xl/calcChain.xml");
+  let ct = txt(partes.get("[Content_Types].xml"));
+  ct = ct.replace(/<Override[^>]*calcChain\.xml[^>]*\/>/g, "");
+  partes.set("[Content_Types].xml", te.encode(ct));
+
+  const blob = await escreverZip(semCalcChain, partes);
+  await fonte.gravar(blob, versao);
+  return regs.map((_, i) => primeira + i);
+}
+
+async function gravarLancamento(fonte, reg, versaoEsperada) {
+  const linhas = await gravarLancamentos(fonte, [reg], versaoEsperada);
+  return linhas[0];
+}
+
+/* Grava uma transferência na aba Acertos. Diferente de Lançamentos, ali as
+   linhas já existem formatadas e vazias, então a linha é SUBSTITUÍDA no lugar
+   em vez de acrescentada, senão o XML ficaria com dois nós para a mesma linha. */
+async function gravarAcerto(fonte, ac, versaoEsperada) {
+  const { buf, versao } = await fonte.ler();
+  if (versaoEsperada && versao !== versaoEsperada) {
+    throw new Error("a planilha mudou desde que foi carregada. Clique em Recarregar e tente de novo");
+  }
+  const { ordem, partes } = await lerZip(buf);
+  const caminho = acharAba(partes, "Acertos");
+  if (!caminho) throw new Error("não encontrei a aba Acertos nesta planilha");
+  const ss = lerSharedStrings(partes);
+  let xml = txt(partes.get(caminho));
+
+  const PRIMEIRA = 6, ULTIMA = 305;
+  const nos = new Map();
+  for (const rm of xml.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>|<row\b([^>]*)\/>/g)) {
+    const attrs = rm[1] ?? rm[3] ?? "";
+    const nr = /\br="(\d+)"/.exec(attrs);
+    if (nr) nos.set(+nr[1], { inteiro: rm[0], attrs, miolo: rm[2] || "" });
+  }
+
+  let alvo = null;
+  for (let r = PRIMEIRA; r <= ULTIMA; r++) {
+    const no = nos.get(r);
+    if (!no) { alvo = r; break; }
+    let ocupada = false;
+    for (const cm of no.miolo.matchAll(/<c\b[^>]*\/>|<c\b[^>]*>[\s\S]*?<\/c>/g)) {
+      const ref = /\br="([A-Z]+\d+)"/.exec(cm[0]);
+      if (!ref) continue;
+      const col = letraParaIndice(ref[1]);
+      if (col >= 2 && col <= 7 && valorDaCelula(cm[0], ss) != null) { ocupada = true; break; }
+    }
+    if (!ocupada) { alvo = r; break; }
+  }
+  if (!alvo) throw new Error("a aba Acertos está cheia (300 transferências); abra a planilha e limpe as antigas");
+
+  // reaproveita os estilos já aplicados àquela linha
+  const estilos = {};
+  const no = nos.get(alvo);
+  if (no) {
+    for (const cm of no.miolo.matchAll(/<c\b[^>]*\/>|<c\b[^>]*>[\s\S]*?<\/c>/g)) {
+      const ref = /\br="([A-Z]+\d+)"/.exec(cm[0]);
+      const s = /\bs="(\d+)"/.exec(cm[0]);
+      if (ref && s) estilos[letraParaIndice(ref[1])] = s[1];
+    }
+  }
+  const est = i => (estilos[i] !== undefined ? ` s="${estilos[i]}"` : "");
+  const L = i => indiceParaLetra(i) + alvo;
+  const cels = [
+    `<c r="${L(2)}"${est(2)}><v>${dataParaSerial(ac.data)}</v></c>`,
+    `<c r="${L(3)}"${est(3)} t="inlineStr"><is><t>${escapar(ac.de)}</t></is></c>`,
+    `<c r="${L(4)}"${est(4)} t="inlineStr"><is><t>${escapar(ac.para)}</t></is></c>`,
+    `<c r="${L(5)}"${est(5)}><v>${ac.valor}</v></c>`,
+  ];
+  if (ac.referente) cels.push(
+    `<c r="${L(6)}"${est(6)} t="inlineStr"><is><t xml:space="preserve">${escapar(ac.referente)}</t></is></c>`);
+  if (ac.obs) cels.push(
+    `<c r="${L(7)}"${est(7)} t="inlineStr"><is><t xml:space="preserve">${escapar(ac.obs)}</t></is></c>`);
+  const novoNo = `<row${no ? no.attrs : ` r="${alvo}"`}>${cels.join("")}</row>`;
+
+  if (no) {
+    xml = xml.replace(no.inteiro, novoNo);
+  } else {
+    const posteriores = [...nos.keys()].filter(n => n > alvo).sort((a, b) => a - b);
+    if (posteriores.length) {
+      xml = xml.replace(nos.get(posteriores[0]).inteiro, novoNo + nos.get(posteriores[0]).inteiro);
+    } else {
+      xml = xml.replace("</sheetData>", novoNo + "</sheetData>");
+    }
+  }
+  partes.set(caminho, te.encode(xml));
+
+  let wbx = txt(partes.get("xl/workbook.xml"));
+  if (/<calcPr\b[^>]*\/?>/.test(wbx)) {
+    wbx = wbx.replace(/<calcPr\b[^>]*?\/?>/, m =>
+      m.replace(/\s*fullCalcOnLoad="[^"]*"/, "").replace(/\/?>$/, ' fullCalcOnLoad="1"/>'));
+  }
+  partes.set("xl/workbook.xml", te.encode(wbx));
+  const semCalcChain = ordem.filter(n => n !== "xl/calcChain.xml");
+  partes.delete("xl/calcChain.xml");
+  let ct = txt(partes.get("[Content_Types].xml"));
+  ct = ct.replace(/<Override[^>]*calcChain\.xml[^>]*\/>/g, "");
+  partes.set("[Content_Types].xml", te.encode(ct));
+
+  const blob = await escreverZip(semCalcChain, partes);
+  await fonte.gravar(blob, versao);
+  return alvo;
+}
+
+/* ============================================================
+   4c. Login Microsoft (OAuth2 + PKCE) e acesso ao OneDrive
+   Feito na mão em vez de usar biblioteca: o endpoint de token da Microsoft
+   libera CORS para qualquer origem, então bastam estas poucas funções e o
+   app continua sem nenhuma dependência externa.
+   ============================================================ */
+const AUTH = {
+  clientId: "e782c8fe-29c3-4c8f-8440-d838f8604e07",
+  autoridade: "https://login.microsoftonline.com/consumers/oauth2/v2.0",
+  escopos: "openid profile offline_access Files.ReadWrite Files.ReadWrite.All",
+  redirect: location.origin + location.pathname,
+};
+const CHAVE_REFRESH = "despesas.refresh";
+const CHAVE_PKCE = "despesas.pkce";
+const CHAVE_ARQUIVO = "despesas.arquivo";
+let TOKEN = { valor: null, expira: 0 };
+
+function base64url(bytes) {
+  let s = "";
+  for (const b of new Uint8Array(bytes)) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function aleatorio(n) {
+  return base64url(crypto.getRandomValues(new Uint8Array(n)));
+}
+async function desafioPkce(verificador) {
+  const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verificador));
+  return base64url(h);
+}
+
+async function entrar() {
+  const verificador = aleatorio(48);
+  const estado = aleatorio(16);
+  sessionStorage.setItem(CHAVE_PKCE, JSON.stringify({ verificador, estado }));
+  const p = new URLSearchParams({
+    client_id: AUTH.clientId,
+    response_type: "code",
+    redirect_uri: AUTH.redirect,
+    response_mode: "query",
+    scope: AUTH.escopos,
+    state: estado,
+    code_challenge: await desafioPkce(verificador),
+    code_challenge_method: "S256",
+  });
+  location.assign(`${AUTH.autoridade}/authorize?${p}`);
+}
+
+async function trocarPorToken(corpo) {
+  const r = await fetch(`${AUTH.autoridade}/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ client_id: AUTH.clientId, ...corpo }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    throw new Error(j.error_description || j.error || `falha no login (HTTP ${r.status})`);
+  }
+  TOKEN = { valor: j.access_token, expira: Date.now() + (j.expires_in - 120) * 1000 };
+  if (j.refresh_token) localStorage.setItem(CHAVE_REFRESH, j.refresh_token);
+  return j;
+}
+
+/* Trata a volta do login: o código vem na barra de endereço. */
+async function tratarRetornoLogin() {
+  const q = new URLSearchParams(location.search);
+  const erro = q.get("error");
+  if (erro) {
+    history.replaceState({}, "", AUTH.redirect);
+    throw new Error(q.get("error_description") || erro);
+  }
+  const codigo = q.get("code");
+  if (!codigo) return false;
+  const guardado = JSON.parse(sessionStorage.getItem(CHAVE_PKCE) || "null");
+  history.replaceState({}, "", AUTH.redirect);
+  if (!guardado) throw new Error("sessão de login perdida; tente entrar de novo");
+  if (q.get("state") !== guardado.estado) throw new Error("estado do login não confere");
+  sessionStorage.removeItem(CHAVE_PKCE);
+  await trocarPorToken({
+    grant_type: "authorization_code", code: codigo,
+    redirect_uri: AUTH.redirect, code_verifier: guardado.verificador,
+  });
+  return true;
+}
+
+async function token() {
+  if (TOKEN.valor && Date.now() < TOKEN.expira) return TOKEN.valor;
+  const rt = localStorage.getItem(CHAVE_REFRESH);
+  if (!rt) throw new Error("sessão expirada");
+  try {
+    await trocarPorToken({ grant_type: "refresh_token", refresh_token: rt, scope: AUTH.escopos });
+  } catch (e) {
+    localStorage.removeItem(CHAVE_REFRESH);
+    throw new Error("sessão expirada");
+  }
+  return TOKEN.valor;
+}
+function temSessao() { return !!(TOKEN.valor || localStorage.getItem(CHAVE_REFRESH)); }
+function sair() {
+  TOKEN = { valor: null, expira: 0 };
+  localStorage.removeItem(CHAVE_REFRESH);
+  localStorage.removeItem(CHAVE_ARQUIVO);
+}
+
+const GRAPH = "https://graph.microsoft.com/v1.0";
+async function graphBruto(caminho, opcoes = {}) {
+  const t = await token();
+  const r = await fetch(caminho.startsWith("http") ? caminho : GRAPH + caminho, {
+    ...opcoes,
+    headers: { Authorization: "Bearer " + t, ...(opcoes.headers || {}) },
+  });
+  if (!r.ok) {
+    let det = "";
+    try { det = (await r.json()).error?.message || ""; } catch { /* corpo vazio */ }
+    if (r.status === 412 || r.status === 409) {
+      throw new Error("a planilha foi alterada por outra pessoa enquanto você editava. " +
+                      "Clique em Recarregar e refaça o lançamento");
+    }
+    throw new Error(det || `OneDrive respondeu ${r.status}`);
+  }
+  return r;
+}
+async function graphJson(caminho, opcoes) {
+  return (await graphBruto(caminho, opcoes)).json();
+}
+async function graphSubir(caminho, blob, versao) {
+  const cab = { "Content-Type": "application/octet-stream" };
+  if (versao) cab["if-match"] = versao;
+  return graphBruto(caminho, { method: "PUT", headers: cab, body: blob });
+}
+
+/* Procura planilhas .xlsx no OneDrive do usuário e nas compartilhadas com ele. */
+async function procurarPlanilhas(termo) {
+  const achados = new Map();
+  const juntar = (v, origem) => {
+    for (const it of v || []) {
+      const ref = it.remoteItem || it;
+      const nome = ref.name || it.name || "";
+      if (!/\.xlsx$/i.test(nome)) continue;
+      const driveId = ref.parentReference?.driveId || it.parentReference?.driveId;
+      const itemId = ref.id || it.id;
+      if (!driveId || !itemId) continue;
+      achados.set(driveId + "|" + itemId, {
+        driveId, itemId, nome, origem,
+        pasta: ref.parentReference?.path?.replace(/^\/drive\/root:?/, "") || "",
+      });
+    }
+  };
+  const q = encodeURIComponent(termo || "xlsx");
+  try { juntar((await graphJson(`/me/drive/root/search(q='${q}')?$top=40`)).value, "meu OneDrive"); }
+  catch (e) { console.warn("busca no meu drive:", e.message); }
+  try { juntar((await graphJson("/me/drive/sharedWithMe")).value, "compartilhada comigo"); }
+  catch (e) { console.warn("compartilhadas:", e.message); }
+  return [...achados.values()];
+}
+
+/* Resolve um link de compartilhamento do OneDrive para um arquivo. */
+async function resolverLink(url) {
+  const enc = "u!" + btoa(url.trim()).replace(/=+$/, "").replace(/\//g, "_").replace(/\+/g, "-");
+  const it = await graphJson(`/shares/${enc}/driveItem?$select=id,name,parentReference`);
+  const driveId = it.parentReference?.driveId;
+  if (!driveId || !it.id) throw new Error("não consegui identificar o arquivo por esse link");
+  return { driveId, itemId: it.id, nome: it.name, origem: "link compartilhado", pasta: "" };
+}
+
+/* ============================================================
+   4b. Fontes: de onde o app lê e grava a planilha
+   A mesma interface serve para arquivo em disco e para OneDrive via Graph,
+   então todo o resto do app não precisa saber qual das duas está em uso.
+   ============================================================ */
+function fonteLocal(handle) {
+  return {
+    tipo: "local",
+    nome: handle.name,
+    async permissao() { return garantirPermissao(handle, true); },
+    async ler() {
+      const f = await handle.getFile();
+      return { buf: await f.arrayBuffer(), versao: `${f.lastModified}:${f.size}` };
+    },
+    async gravar(blob) {
+      const w = await handle.createWritable();
+      await w.write(blob);
+      await w.close();
+    },
+  };
+}
+
+function fonteOneDrive(item) {
+  const base = `/drives/${item.driveId}/items/${item.itemId}`;
+  return {
+    tipo: "onedrive",
+    nome: item.nome,
+    item,
+    async permissao() { return true; },
+    async ler() {
+      // o eTag do arquivo é o que detecta edição de outra pessoa entre a
+      // leitura e a gravação; é mais confiável que data e tamanho
+      const meta = await graphJson(`${base}?select=id,name,eTag,cTag,size`);
+      const resp = await graphBruto(`${base}/content`);
+      return { buf: await resp.arrayBuffer(), versao: meta.cTag || meta.eTag || "" };
+    },
+    async gravar(blob, versao) {
+      await graphSubir(`${base}/content`, blob, versao);
+    },
+  };
+}
+
+/* ============================================================
+   5. Persistência do arquivo escolhido (IndexedDB)
+   ============================================================ */
+const DB = "despesas-app", LOJA = "handles";
+function abrirDb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(LOJA);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function guardarHandle(h) {
+  const db = await abrirDb();
+  await new Promise((res, rej) => {
+    const tx = db.transaction(LOJA, "readwrite");
+    tx.objectStore(LOJA).put(h, "planilha");
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+}
+async function recuperarHandle() {
+  try {
+    const db = await abrirDb();
+    return await new Promise((res, rej) => {
+      const tx = db.transaction(LOJA, "readonly");
+      const q = tx.objectStore(LOJA).get("planilha");
+      q.onsuccess = () => res(q.result || null);
+      q.onerror = () => rej(q.error);
+    });
+  } catch { return null; }
+}
+
+/* ============================================================
+   6. Estado e interface
+   ============================================================ */
+const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+               "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const MES_CURTO = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const brlCurto = v => Math.abs(v) >= 1000
+  ? "R$ " + (v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "k"
+  : brl.format(v);
+
+let ESTADO = { fonte: null, versao: null, dados: [], acertos: [], recorrentes: [], fixas: [],
+               categorias: [], filtro: { ano: null, mes: 0, cat: "", quem: "" } };
+const $ = id => document.getElementById(id);
+
+function aviso(msg, tipo = "") {
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "toast " + tipo;
+  t.hidden = false;
+  clearTimeout(aviso._t);
+  aviso._t = setTimeout(() => { t.hidden = true; }, 4200);
+}
+
+async function garantirPermissao(h, escrita) {
+  const opts = { mode: escrita ? "readwrite" : "read" };
+  if ((await h.queryPermission(opts)) === "granted") return true;
+  return (await h.requestPermission(opts)) === "granted";
+}
+
+async function carregar(fonte) {
+  const { buf, versao } = await fonte.ler();
+  const { ordem, partes } = await lerZip(buf);
+  const { linhas } = lerLancamentos(partes);
+  ESTADO.fonte = fonte;
+  ESTADO.versao = versao;
+  ESTADO.dados = linhas;
+  ESTADO.acertos = lerAcertos(partes);
+  ESTADO.recorrentes = lerRecorrentes(ordem, partes);
+  ESTADO.categorias = [...new Set(linhas.map(l => l.categoria))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  $("nomeArquivo").textContent = fonte.nome;
+  $("barraArquivo").hidden = false;
+  $("telaVazia").hidden = true;
+  $("app").hidden = false;
+  $("btnNovo").hidden = false;
+  $("btnFixas").hidden = false;
+  $("btnRecarregar").hidden = false;
+  $("btnAbrir").textContent = "Trocar planilha";
+  if (fonte.tipo === "onedrive") {
+    localStorage.setItem(CHAVE_ARQUIVO, JSON.stringify(fonte.item));
+  }
+  montarFiltros();
+  desenhar();
+}
+
+async function escolherArquivoLocal() {
+  if (!window.showOpenFilePicker) {
+    aviso("Este navegador não permite editar arquivos locais. Use o Microsoft Edge ou o Chrome.", "err");
+    return;
+  }
+  try {
+    const [h] = await window.showOpenFilePicker({
+      types: [{ description: "Planilha do Excel", accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] } }],
+      multiple: false,
+    });
+    if (!(await garantirPermissao(h, true))) { aviso("Sem permissão de edição no arquivo.", "err"); return; }
+    await guardarHandle(h);
+    await carregar(fonteLocal(h));
+    aviso("Planilha carregada.", "ok");
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+    console.error(e);
+    aviso("Não consegui abrir: " + (e && e.message ? e.message : e), "err");
+  }
+}
+
+/* ---------- escolher a planilha no OneDrive ---------- */
+async function abrirSeletorOneDrive(termo) {
+  $("odLista").innerHTML = '<div class="legend" style="padding:14px">Procurando no seu OneDrive…</div>';
+  $("overlayArquivo").hidden = false;
+  try {
+    const achados = await procurarPlanilhas(termo);
+    if (!achados.length) {
+      $("odLista").innerHTML =
+        '<div class="legend" style="padding:14px">Nenhuma planilha .xlsx encontrada. ' +
+        'Tente outro termo de busca ou cole o link de compartilhamento abaixo.</div>';
+      return;
+    }
+    $("odLista").innerHTML = achados.map((a, i) => `
+      <button type="button" class="item-arquivo" data-i="${i}">
+        <span class="nm">${escapar(a.nome)}</span>
+        <span class="chip">${escapar(a.origem)}</span>
+        ${a.pasta ? `<span class="cam">${escapar(decodeURIComponent(a.pasta))}</span>` : ""}
+      </button>`).join("");
+    $("odLista").querySelectorAll(".item-arquivo").forEach(b =>
+      b.addEventListener("click", () => usarArquivoOneDrive(achados[+b.dataset.i])));
+  } catch (e) {
+    console.error(e);
+    $("odLista").innerHTML = `<div class="legend" style="padding:14px;color:var(--cp-danger)">
+      Não consegui listar: ${escapar(e.message)}</div>`;
+  }
+}
+
+async function usarArquivoOneDrive(item) {
+  try {
+    $("overlayArquivo").hidden = true;
+    aviso("Baixando a planilha…");
+    await carregar(fonteOneDrive(item));
+    aviso("Planilha carregada do OneDrive.", "ok");
+  } catch (e) {
+    console.error(e);
+    aviso("Não consegui abrir: " + (e.message || e), "err");
+  }
+}
+
+function montarFiltros() {
+  const anos = [...new Set(ESTADO.dados.map(l => l.ano))].sort((a, b) => b - a);
+  const hoje = new Date();
+  if (ESTADO.filtro.ano === null) {
+    ESTADO.filtro.ano = anos.includes(hoje.getFullYear()) ? hoje.getFullYear() : anos[0];
+  }
+  $("selAno").innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join("");
+  $("selAno").value = ESTADO.filtro.ano;
+  $("selMes").innerHTML = `<option value="0">Ano inteiro</option>` +
+    MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("");
+  $("selMes").value = ESTADO.filtro.mes;
+  $("selCat").innerHTML = `<option value="">Todas</option>` +
+    ESTADO.categorias.map(c => `<option value="${escapar(c)}">${escapar(c)}</option>`).join("");
+  $("selCat").value = ESTADO.filtro.cat;
+  $("selQuem").innerHTML = `<option value="">Todos</option><option value="Ana">Ana</option>` +
+    `<option value="Thiago">Thiago</option><option value="Casa">Casa</option>`;
+  $("selQuem").value = ESTADO.filtro.quem;
+}
+
+function filtrados() {
+  const f = ESTADO.filtro;
+  return ESTADO.dados.filter(l =>
+    l.ano === +f.ano &&
+    (f.mes === 0 || l.mes === +f.mes) &&
+    (!f.cat || l.categoria === f.cat) &&
+    (!f.quem || l.quem === f.quem));
+}
+
+function desenhar() {
+  const f = ESTADO.filtro;
+  const doAno = ESTADO.dados.filter(l => l.ano === +f.ano);
+  const sel = filtrados();
+
+  // --- por mês (do ano, respeitando categoria/quem mas não o mês)
+  const baseMes = ESTADO.dados.filter(l =>
+    l.ano === +f.ano && (!f.cat || l.categoria === f.cat) && (!f.quem || l.quem === f.quem));
+  const porMes = Array(12).fill(0);
+  for (const l of baseMes) porMes[l.mes - 1] += l.valor;
+  const comDados = porMes.filter(v => v > 0);
+
+  // --- KPIs
+  const totalSel = sel.reduce((s, l) => s + l.valor, 0);
+  const acertoSel = sel.reduce((s, l) => s + l.anaDeve, 0);
+  const media = comDados.length ? comDados.reduce((a, b) => a + b, 0) / comDados.length : 0;
+  const totalAno = doAno.reduce((s, l) => s + l.valor, 0);
+  const rotulo = f.mes === 0 ? `${f.ano}` : `${MESES[f.mes - 1]}/${f.ano}`;
+
+  // comparação justa: mesmos meses nos dois anos, nunca 7 meses contra 12,
+  // e respeitando os mesmos filtros de categoria e pagador do resto do painel
+  const ultimoMes = porMes.reduce((acc, v, i) => (v > 0 ? i + 1 : acc), 0);
+  const mesesComp = f.mes === 0 ? ultimoMes : +f.mes;
+  const somaAte = (ano, ateMes, so) => ESTADO.dados
+    .filter(l => l.ano === ano && (so ? l.mes === ateMes : l.mes <= ateMes) &&
+                 (!f.cat || l.categoria === f.cat) && (!f.quem || l.quem === f.quem))
+    .reduce((s, l) => s + l.valor, 0);
+  const soUmMes = f.mes !== 0;
+  const atual = mesesComp ? somaAte(+f.ano, mesesComp, soUmMes) : 0;
+  const anterior = mesesComp ? somaAte(+f.ano - 1, mesesComp, soUmMes) : 0;
+  const variacao = anterior > 0 ? ((atual - anterior) / anterior) * 100 : null;
+  const periodoComp = !mesesComp ? "—"
+    : soUmMes ? MESES[mesesComp - 1]
+    : (mesesComp === 12 ? "ano inteiro" : `Jan–${MES_CURTO[mesesComp - 1]}`);
+
+  $("kpis").innerHTML = [
+    { lab: `Total · ${rotulo}`, val: brl.format(totalSel),
+      note: `${sel.length} lançamento${sel.length === 1 ? "" : "s"}` },
+    { lab: "Média mensal do ano", val: brl.format(media),
+      note: `${comDados.length} mês(es) com dados · ano todo ${brlCurto(totalAno)}` },
+    { lab: `vs ${+f.ano - 1} · ${periodoComp}`,
+      val: variacao === null ? "—" : `${variacao >= 0 ? "+" : "−"}${Math.abs(variacao).toFixed(1)}%`,
+      note: variacao === null ? `sem dados de ${+f.ano - 1} para comparar`
+        : `${brlCurto(atual)} agora · ${brlCurto(anterior)} antes`,
+      cls: variacao === null ? "" : (variacao >= 0 ? "neg" : "pos") },
+    { lab: "Acerto do período", val: brl.format(Math.abs(acertoSel)),
+      note: Math.abs(acertoSel) < 0.01 ? "tudo equilibrado"
+        : (acertoSel > 0 ? "Ana transfere p/ Thiago" : "Thiago transfere p/ Ana"),
+      cls: Math.abs(acertoSel) < 0.01 ? "" : (acertoSel > 0 ? "pos" : "neg") },
+  ].map(k => `<div class="kpi"><div class="lab">${k.lab}</div>
+      <div class="val ${k.cls || ""}">${k.val}</div>
+      <div class="note">${k.note}</div></div>`).join("");
+
+  // --- gráfico de evolução (SVG feito à mão)
+  $("tituloEvolucao").textContent = `· ${f.ano}`;
+  const W = 560, H = 190, PL = 48, PR = 12, PT = 14, PB = 26;
+  const maxV = Math.max(...porMes, 1);
+  const px = i => PL + (i * (W - PL - PR)) / 11;
+  const py = v => PT + (H - PT - PB) * (1 - v / maxV);
+  const pontos = porMes.map((v, i) => [px(i), py(v)]);
+  const ultimo = porMes.reduce((acc, v, i) => (v > 0 ? i : acc), -1);
+  const visiveis = ultimo >= 0 ? pontos.slice(0, ultimo + 1) : [];
+  const linha = visiveis.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  const area = visiveis.length
+    ? `${linha} L${visiveis[visiveis.length - 1][0].toFixed(1)} ${py(0)} L${visiveis[0][0].toFixed(1)} ${py(0)} Z` : "";
+  const gradeY = [0, 0.25, 0.5, 0.75, 1].map(t => {
+    const v = maxV * t, y = py(v);
+    return `<line x1="${PL}" y1="${y}" x2="${W - PR}" y2="${y}" stroke="var(--cp-border)" stroke-width="1"/>
+            <text x="${PL - 6}" y="${y + 3}" text-anchor="end" font-size="9" fill="var(--cp-text-muted)">${brlCurto(v)}</text>`;
+  }).join("");
+  $("grafico").innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Evolução mensal">
+      ${gradeY}
+      ${area ? `<path d="${area}" fill="var(--cp-accent-soft)"/>` : ""}
+      ${linha ? `<path d="${linha}" fill="none" stroke="var(--cp-accent)" stroke-width="2.2"
+                    stroke-linejoin="round" stroke-linecap="round"/>` : ""}
+      ${visiveis.map((p, i) => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.2"
+          fill="var(--cp-surface)" stroke="var(--cp-accent)" stroke-width="2"><title>${MESES[i]}: ${brl.format(porMes[i])}</title></circle>`).join("")}
+      ${MES_CURTO.map((m, i) => `<text x="${px(i)}" y="${H - 8}" text-anchor="middle" font-size="9"
+          fill="${i === +f.mes - 1 ? "var(--cp-accent)" : "var(--cp-text-muted)"}"
+          font-weight="${i === +f.mes - 1 ? 700 : 400}">${m}</text>`).join("")}
+    </svg>
+    ${ultimo < 0 ? '<div class="legend">Nenhum lançamento neste ano ainda.</div>' : ""}`;
+
+  // --- barras por categoria
+  $("tituloCategorias").textContent = `· ${rotulo}`;
+  const porCat = new Map();
+  for (const l of sel) porCat.set(l.categoria, (porCat.get(l.categoria) || 0) + l.valor);
+  const cats = [...porCat.entries()].sort((a, b) => b[1] - a[1]);
+  const maxC = cats.length ? cats[0][1] : 1;
+  $("barras").innerHTML = cats.length
+    ? cats.map(([c, v]) => `<div class="bar-row">
+        <div class="nm" title="${escapar(c)}">${escapar(c)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, (v / maxC) * 100).toFixed(1)}%"></div></div>
+        <div class="num">${brl.format(v)}</div></div>`).join("")
+      + `<div class="legend">${cats.length} categoria(s) · maior fatia ${((cats[0][1] / (totalSel || 1)) * 100).toFixed(0)}% do total</div>`
+    : '<div class="legend">Nada lançado no período selecionado.</div>';
+
+  // --- tabela
+  const ordenado = [...sel].sort((a, b) => b.data - a.data || b.valor - a.valor);
+  $("contagemLanc").textContent = `· ${rotulo}`;
+  $("corpoTabela").innerHTML = ordenado.length
+    ? ordenado.slice(0, 400).map(l => `<tr>
+        <td>${String(l.data.getUTCDate()).padStart(2, "0")}/${String(l.mes).padStart(2, "0")}</td>
+        <td><span class="tag ${l.tipo === "Fixa" ? "" : "muted"}">${escapar(l.tipo)}</span></td>
+        <td>${escapar(l.categoria)}</td>
+        <td>${escapar(l.descricao)}${l.parcela ? ` <span class="tag muted">${escapar(l.parcela)}</span>` : ""}</td>
+        <td class="num">${brl.format(l.valor)}</td>
+        <td>${escapar(l.quem)}</td>
+        <td class="num ${l.anaDeve > 0 ? "pos" : l.anaDeve < 0 ? "neg" : ""}">${brl.format(l.anaDeve)}</td>
+      </tr>`).join("")
+    : '<tr><td colspan="7" style="text-align:center;color:var(--cp-text-muted);padding:28px">Nada aqui ainda.</td></tr>';
+
+  // --- acerto
+  const fixas = sel.filter(l => l.tipo === "Fixa").reduce((s, l) => s + l.valor, 0);
+  const conj = sel.filter(l => l.tipo === "Conjunta").reduce((s, l) => s + l.valor, 0);
+  const pagoT = sel.filter(l => l.quem === "Thiago").reduce((s, l) => s + l.valor, 0);
+  const pagoA = sel.filter(l => l.quem === "Ana").reduce((s, l) => s + l.valor, 0);
+  const pagoC = sel.filter(l => l.quem === "Casa").reduce((s, l) => s + l.valor, 0);
+  const itens = [
+    ["Despesas fixas", fixas], ["Despesas conjuntas", conj], ["—", null],
+    ["Pago por Thiago", pagoT], ["Pago por Ana", pagoA],
+  ];
+  if (pagoC > 0) itens.push(["Pago pela conta da casa", pagoC]);
+  // --- transferências já registradas na aba Acertos, no mesmo período
+  const transf = ESTADO.acertos.filter(t => {
+    if (!t.data) return false;
+    const ano = t.data.getUTCFullYear(), mes = t.data.getUTCMonth() + 1;
+    return ano === +f.ano && (f.mes === 0 || mes === +f.mes);
+  });
+  const jaPago = transf.filter(t => t.de === "Ana" && t.para === "Thiago").reduce((s, t) => s + t.valor, 0)
+               - transf.filter(t => t.de === "Thiago" && t.para === "Ana").reduce((s, t) => s + t.valor, 0);
+  const aberto = round2(acertoSel - jaPago);
+  const temTransf = transf.length > 0;
+
+  $("acerto").innerHTML = `<table><tbody>` +
+    itens.map(([k, v]) => v === null
+      ? `<tr><td colspan="2" style="border:0;height:6px"></td></tr>`
+      : `<tr><td>${k}</td><td class="num">${brl.format(v)}</td></tr>`).join("") +
+    (temTransf ? `<tr><td colspan="2" style="border:0;height:6px"></td></tr>
+       <tr><td>Gerado no período</td><td class="num">${brl.format(acertoSel)}</td></tr>
+       <tr><td>Já transferido</td><td class="num">${brl.format(jaPago)}</td></tr>` : "") +
+    `</tbody></table>
+     <div style="margin-top:16px;padding:14px;border-radius:0.625rem;background:var(--cp-accent-soft)">
+       <div style="font-size:.75rem;color:var(--cp-text-muted);text-transform:uppercase;letter-spacing:.04em">${
+         temTransf ? "Saldo em aberto" : "Resultado"}</div>
+       <div style="font-size:1.25rem;font-weight:650;margin-top:4px">
+         ${Math.abs(aberto) < 0.01 ? (temTransf ? "Quitado" : "Ninguém deve nada")
+           : `${aberto > 0 ? "Ana" : "Thiago"} transfere ${brl.format(Math.abs(aberto))}`}
+       </div>
+       ${Math.abs(aberto) >= 0.01
+         ? `<div style="font-size:.8125rem;color:var(--cp-text-muted);margin-top:2px">para ${aberto > 0 ? "Thiago" : "Ana"}</div>` : ""}
+     </div>
+     <div class="legend">${temTransf
+       ? `${transf.length} transferência(s) lida(s) da aba <strong>Acertos</strong> neste período.`
+       : "Nenhuma transferência registrada neste período."}</div>
+     ${Math.abs(aberto) >= 0.01
+       ? `<button type="button" id="btnAcerto" class="primary" style="margin-top:10px;width:100%">
+            Registrar transferência de ${brl.format(Math.abs(aberto))}</button>` : ""}`;
+  const ba = $("btnAcerto");
+  if (ba) ba.addEventListener("click", () => abrirAcerto(aberto));
+
+  // --- aviso de meses em aberto
+  const hoje = new Date();
+  const pendentes = [];
+  if (+f.ano === hoje.getFullYear()) {
+    for (let m = 1; m <= hoje.getMonth() + 1; m++) if (porMes[m - 1] === 0) pendentes.push(MESES[m - 1]);
+  }
+  const box = $("avisoFechamento");
+  if (pendentes.length && !f.cat && !f.quem) {
+    box.hidden = false;
+    box.innerHTML = `<strong>Mês em aberto:</strong> ainda não há lançamento de ${pendentes.join(", ")} de ${f.ano}.`;
+  } else box.hidden = true;
+}
+
+/* ---------- eventos ---------- */
+$("btnAbrir").addEventListener("click", () => {
+  if (temSessao()) abrirSeletorOneDrive($("odBusca").value);
+  else escolherArquivoLocal();
+});
+$("btnEntrar").addEventListener("click", () => entrar().catch(e => mostrarErroLogin(e.message)));
+$("btnLocal").addEventListener("click", escolherArquivoLocal);
+$("btnSair").addEventListener("click", () => { sair(); location.reload(); });
+$("odBuscar").addEventListener("click", () => abrirSeletorOneDrive($("odBusca").value));
+$("odBusca").addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); abrirSeletorOneDrive($("odBusca").value); }
+});
+$("odCancelar").addEventListener("click", () => { $("overlayArquivo").hidden = true; });
+$("overlayArquivo").addEventListener("click", e => {
+  if (e.target === $("overlayArquivo")) $("overlayArquivo").hidden = true;
+});
+$("odUsarLink").addEventListener("click", async () => {
+  const url = $("odLink").value.trim();
+  if (!url) { aviso("Cole o link primeiro.", "err"); return; }
+  try { await usarArquivoOneDrive(await resolverLink(url)); }
+  catch (e) { aviso("Link não resolveu: " + (e.message || e), "err"); }
+});
+$("btnRecarregar").addEventListener("click", async () => {
+  if (!ESTADO.fonte) return;
+  try { await carregar(ESTADO.fonte); aviso("Recarregado.", "ok"); }
+  catch (e) { aviso("Falha ao recarregar: " + e.message, "err"); }
+});
+for (const [id, campo] of [["selAno", "ano"], ["selMes", "mes"], ["selCat", "cat"], ["selQuem", "quem"]]) {
+  $(id).addEventListener("change", e => {
+    ESTADO.filtro[campo] = campo === "ano" || campo === "mes" ? +e.target.value : e.target.value;
+    if (campo === "ano") { montarFiltros(); }
+    desenhar();
+  });
+}
+
+/* ---------- formulário ---------- */
+function abrirForm() {
+  const f = ESTADO.filtro;
+  const hoje = new Date();
+  const d = f.mes > 0 ? new Date(f.ano, f.mes - 1, Math.min(hoje.getDate(), 28)) : hoje;
+  $("fData").value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  $("fTipo").innerHTML = ["Fixa", "Conjunta"].map(t => `<option>${t}</option>`).join("");
+  const cats = ESTADO.categorias.length ? ESTADO.categorias : ["Outros"];
+  $("listaCategorias").innerHTML = cats.map(c => `<option value="${escapar(c)}"></option>`).join("");
+  $("fCat").value = "";
+  $("fQuem").innerHTML = ["Thiago", "Ana", "Casa"].map(p => `<option>${p}</option>`).join("");
+  $("fDesc").value = ""; $("fValor").value = ""; $("fParcela").value = ""; $("fObs").value = "";
+  $("fRateio").value = 50;
+  atualizarPrevia();
+  $("overlay").hidden = false;
+  setTimeout(() => $("fDesc").focus(), 40);
+}
+function fecharForm() { $("overlay").hidden = true; }
+function atualizarPrevia() {
+  const v = parseFloat($("fValor").value);
+  const rBruto = parseFloat($("fRateio").value);
+  const quem = $("fQuem").value;
+  if (!Number.isFinite(rBruto) || rBruto < 0 || rBruto > 100) {
+    $("previaRateio").innerHTML = '<span style="color:var(--cp-danger)">Informe o % do Thiago entre 0 e 100.</span>';
+    return;
+  }
+  const r = rBruto / 100;
+  if (!v || v <= 0) { $("previaRateio").textContent = ""; return; }
+  const cotaT = round2(v * r);
+  const cotaA = round2(v - cotaT);
+  const deve = quem === "Thiago" ? cotaA : quem === "Ana" ? -cotaT : 0;
+  $("previaRateio").innerHTML = `Thiago ${brl.format(cotaT)} · Ana ${brl.format(cotaA)} — ` +
+    (deve === 0 ? "sem acerto entre vocês"
+      : `<strong>${deve > 0 ? "Ana" : "Thiago"} deve ${brl.format(Math.abs(deve))}</strong>`);
+}
+for (const id of ["fValor", "fRateio", "fQuem"]) $(id).addEventListener("input", atualizarPrevia);
+$("fQuem").addEventListener("change", atualizarPrevia);
+$("btnNovo").addEventListener("click", abrirForm);
+$("btnCancelar").addEventListener("click", fecharForm);
+$("overlay").addEventListener("click", e => { if (e.target === $("overlay")) fecharForm(); });
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (!$("overlay").hidden) fecharForm();
+  if (!$("overlayFixas").hidden) fecharFixas();
+  if (!$("overlayAcerto").hidden) fecharAcerto();
+});
+
+$("formNovo").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!ESTADO.fonte) { aviso("Abra a planilha primeiro.", "err"); return; }
+  const btn = $("btnSalvar");
+  const [a, m, d] = $("fData").value.split("-").map(Number);
+  const texto = v => limparXml(v).trim();
+  const rateioBruto = parseFloat($("fRateio").value);
+  if (!Number.isFinite(rateioBruto) || rateioBruto < 0 || rateioBruto > 100) {
+    aviso("Informe o % do Thiago entre 0 e 100.", "err");
+    $("fRateio").focus();
+    return;
+  }
+  const reg = {
+    data: new Date(a, m - 1, d),
+    tipo: $("fTipo").value,
+    categoria: texto($("fCat").value) || "Outros",
+    descricao: texto($("fDesc").value),
+    parcela: texto($("fParcela").value),
+    valor: round2(parseFloat($("fValor").value)),
+    quem: $("fQuem").value,
+    rateio: rateioBruto / 100,
+    obs: texto($("fObs").value),
+  };
+  if (!reg.descricao || !(reg.valor > 0)) { aviso("Preencha descrição e valor.", "err"); return; }
+  if (!Number.isFinite(reg.valor) || reg.valor > 99999999) {
+    aviso("Valor fora do limite aceito.", "err"); return;
+  }
+  // evita gravar duas vezes o mesmo lancamento por clique repetido
+  const igual = ESTADO.dados.find(l =>
+    l.ano === reg.data.getFullYear() && l.mes === reg.data.getMonth() + 1 &&
+    l.descricao === reg.descricao && Math.abs(l.valor - reg.valor) < 0.005);
+  if (igual && !confirm(
+      `Já existe "${reg.descricao}" de ${brl.format(reg.valor)} em ` +
+      `${MESES[reg.data.getMonth()]}/${reg.data.getFullYear()}.\n\nGravar mesmo assim?`)) {
+    return;
+  }
+  btn.disabled = true; btn.textContent = "Gravando…";
+  try {
+    if (!(await ESTADO.fonte.permissao())) throw new Error("permissão de edição negada");
+    // serializa a operação: duas gravações rápidas no mesmo navegador nunca
+    // podem ler a mesma última linha e uma sobrescrever a outra
+    const gravar = () => gravarLancamento(ESTADO.fonte, reg, ESTADO.versao);
+    if (navigator.locks && navigator.locks.request) {
+      await navigator.locks.request("despesas-gravacao", gravar);
+    } else {
+      await gravar();
+    }
+    await carregar(ESTADO.fonte);
+    fecharForm();
+    aviso("Lançamento gravado na planilha.", "ok");
+  } catch (err) {
+    console.error(err);
+    const msg = err && err.message ? err.message : String(err);
+    aviso(/mudou desde|ocupada fora|colunas da tabela|tbLancamentos/.test(msg)
+      ? "Não gravei: " + msg
+      : "Não consegui gravar: " + msg + ". Feche a planilha no Excel e tente de novo.", "err");
+  } finally {
+    btn.disabled = false; btn.textContent = "Gravar na planilha";
+  }
+});
+
+/* ---------- fechamento do mês: lança as fixas de uma vez ---------- */
+function abrirFixas() {
+  if (!ESTADO.recorrentes.length) {
+    aviso("A aba Recorrentes está vazia ou sem nenhuma linha ativa.", "err");
+    return;
+  }
+  const f = ESTADO.filtro;
+  const hoje = new Date();
+  const opcoes = [];
+  for (let d = -2; d <= 1; d++) {
+    const base = new Date(hoje.getFullYear(), hoje.getMonth() + d, 1);
+    opcoes.push([base.getFullYear(), base.getMonth() + 1]);
+  }
+  if (f.mes > 0 && !opcoes.some(([a, m]) => a === +f.ano && m === +f.mes)) {
+    opcoes.unshift([+f.ano, +f.mes]);
+  }
+  $("fxMes").innerHTML = opcoes
+    .map(([a, m]) => `<option value="${a}-${m}">${MESES[m - 1]} de ${a}</option>`).join("");
+  const preferido = f.mes > 0 ? `${f.ano}-${f.mes}` : `${hoje.getFullYear()}-${hoje.getMonth() + 1}`;
+  if ([...$("fxMes").options].some(o => o.value === preferido)) $("fxMes").value = preferido;
+  $("fxDia").value = 1;
+  montarFixas();
+  $("overlayFixas").hidden = false;
+}
+function fecharFixas() { $("overlayFixas").hidden = true; }
+
+function montarFixas() {
+  const [ano, mes] = $("fxMes").value.split("-").map(Number);
+  const itens = fixasDoMes(ano, mes);
+  ESTADO.fixas = itens;
+  if (!itens.length) {
+    $("fxCorpo").innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--cp-text-muted)">Nenhuma recorrente ativa neste mês.</td></tr>';
+    $("fxAviso").textContent = "";
+    atualizarResumoFixas();
+    return;
+  }
+  const jaTem = itens.filter(i => i.duplicado).length;
+  $("fxAviso").innerHTML = jaTem
+    ? `<strong>${jaTem}</strong> despesa(s) já lançada(s) em ${MESES[mes - 1]}/${ano} vêm desmarcadas.`
+    : `Valores sugeridos a partir do último lançamento de cada despesa. Confirme os que variam.`;
+  $("fxCorpo").innerHTML = itens.map((it, i) => `
+    <tr data-i="${i}" class="${it.incluir ? "" : "fora"} ${it.varia ? "varia" : ""}">
+      <td><input type="checkbox" class="inc" ${it.incluir ? "checked" : ""}></td>
+      <td>${escapar(it.descricao)}
+        ${it.duplicado ? '<span class="chip">já lançada</span>' : ""}
+        ${it.varia ? `<span class="chip">varia · ${escapar(it.origemValor)}</span>` : ""}</td>
+      <td>${escapar(it.categoria)}</td>
+      <td class="num"><input type="number" class="val" step="0.01" min="0" style="text-align:right"
+            value="${it.valor != null ? it.valor.toFixed(2) : ""}"></td>
+      <td><select class="quem">${["Thiago", "Ana", "Casa"]
+            .map(p => `<option ${p === it.quem ? "selected" : ""}>${p}</option>`).join("")}</select></td>
+      <td class="num"><input type="number" class="rat" step="1" min="0" max="100" style="text-align:right"
+            value="${Math.round(it.rateio * 100)}"></td>
+      <td>${escapar(it.parcela)}</td>
+    </tr>`).join("");
+  $("fxCorpo").querySelectorAll("input,select").forEach(el =>
+    el.addEventListener("input", e => {
+      const tr = e.target.closest("tr");
+      tr.classList.toggle("fora", !tr.querySelector(".inc").checked);
+      atualizarResumoFixas();
+    }));
+  atualizarResumoFixas();
+}
+
+function lerFixasDaTela() {
+  const [ano, mes] = $("fxMes").value.split("-").map(Number);
+  const dia = Math.min(Math.max(parseInt($("fxDia").value, 10) || 1, 1),
+                       new Date(ano, mes, 0).getDate());
+  const out = [];
+  for (const tr of $("fxCorpo").querySelectorAll("tr[data-i]")) {
+    if (!tr.querySelector(".inc").checked) continue;
+    const it = ESTADO.fixas[+tr.dataset.i];
+    const valor = round2(parseFloat(tr.querySelector(".val").value));
+    const rat = parseFloat(tr.querySelector(".rat").value);
+    if (!(valor > 0) || !Number.isFinite(rat) || rat < 0 || rat > 100) continue;
+    out.push({
+      data: new Date(ano, mes - 1, dia), tipo: it.tipo, categoria: it.categoria,
+      descricao: it.descricao, parcela: it.parcela, valor,
+      quem: tr.querySelector(".quem").value, rateio: rat / 100, obs: "",
+    });
+  }
+  return out;
+}
+
+function atualizarResumoFixas() {
+  const regs = lerFixasDaTela();
+  const total = regs.reduce((s, r) => s + r.valor, 0);
+  const acerto = regs.reduce((s, r) => {
+    const cT = round2(r.valor * r.rateio);
+    return s + (r.quem === "Thiago" ? round2(r.valor - cT) : r.quem === "Ana" ? -cT : 0);
+  }, 0);
+  $("fxResumo").innerHTML = regs.length
+    ? `<strong>${regs.length}</strong> lançamento(s) · total ${brl.format(total)} · ` +
+      (Math.abs(acerto) < 0.01 ? "sem acerto"
+        : `${acerto > 0 ? "Ana" : "Thiago"} deve ${brl.format(Math.abs(acerto))}`)
+    : "Nada selecionado.";
+  $("fxGravar").disabled = regs.length === 0;
+}
+
+$("btnFixas").addEventListener("click", abrirFixas);
+$("fxCancelar").addEventListener("click", fecharFixas);
+$("fxMes").addEventListener("change", montarFixas);
+$("fxDia").addEventListener("input", atualizarResumoFixas);
+$("overlayFixas").addEventListener("click", e => { if (e.target === $("overlayFixas")) fecharFixas(); });
+
+$("formFixas").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!ESTADO.fonte) { aviso("Abra a planilha primeiro.", "err"); return; }
+  const regs = lerFixasDaTela();
+  if (!regs.length) { aviso("Selecione ao menos uma despesa.", "err"); return; }
+  const btn = $("fxGravar");
+  btn.disabled = true; btn.textContent = "Gravando…";
+  try {
+    if (!(await ESTADO.fonte.permissao())) throw new Error("permissão de edição negada");
+    const gravar = () => gravarLancamentos(ESTADO.fonte, regs, ESTADO.versao);
+    if (navigator.locks && navigator.locks.request) {
+      await navigator.locks.request("despesas-gravacao", gravar);
+    } else {
+      await gravar();
+    }
+    await carregar(ESTADO.fonte);
+    fecharFixas();
+    aviso(`${regs.length} despesa(s) fixa(s) lançada(s).`, "ok");
+  } catch (err) {
+    console.error(err);
+    const msg = err && err.message ? err.message : String(err);
+    aviso(/mudou desde|ocupada fora|colunas da tabela|tbLancamentos/.test(msg)
+      ? "Não gravei: " + msg
+      : "Não consegui gravar: " + msg + ". Feche a planilha no Excel e tente de novo.", "err");
+  } finally {
+    btn.disabled = false; btn.textContent = "Lançar selecionadas";
+  }
+});
+
+/* ---------- registrar transferência ---------- */
+function abrirAcerto(saldo) {
+  const f = ESTADO.filtro;
+  const hoje = new Date();
+  $("acData").value = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+  $("acValor").value = Math.abs(saldo).toFixed(2);
+  const de = saldo > 0 ? "Ana" : "Thiago";
+  const para = saldo > 0 ? "Thiago" : "Ana";
+  for (const [id, sel] of [["acDe", de], ["acPara", para]]) {
+    $(id).innerHTML = ["Thiago", "Ana", "Casa"]
+      .map(p => `<option ${p === sel ? "selected" : ""}>${p}</option>`).join("");
+  }
+  const periodo = f.mes === 0 ? `${f.ano}` : `${MESES[f.mes - 1]}/${f.ano}`;
+  $("acRef").value = `acerto de ${periodo}`;
+  $("acSugestao").innerHTML =
+    `Saldo em aberto de <strong>${brl.format(Math.abs(saldo))}</strong>, de ${de} para ${para}, em ${periodo}. ` +
+    `Ajuste se a transferência foi diferente.`;
+  $("overlayAcerto").hidden = false;
+  setTimeout(() => $("acValor").focus(), 40);
+}
+function fecharAcerto() { $("overlayAcerto").hidden = true; }
+$("acCancelar").addEventListener("click", fecharAcerto);
+$("overlayAcerto").addEventListener("click", e => { if (e.target === $("overlayAcerto")) fecharAcerto(); });
+
+$("formAcerto").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!ESTADO.fonte) { aviso("Abra a planilha primeiro.", "err"); return; }
+  const [a, m, d] = $("acData").value.split("-").map(Number);
+  const valor = round2(parseFloat($("acValor").value));
+  if (!(valor > 0)) { aviso("Informe um valor maior que zero.", "err"); return; }
+  if ($("acDe").value === $("acPara").value) { aviso('"De" e "Para" não podem ser a mesma pessoa.', "err"); return; }
+  const btn = $("acGravar");
+  btn.disabled = true; btn.textContent = "Gravando…";
+  try {
+    if (!(await ESTADO.fonte.permissao())) throw new Error("permissão de edição negada");
+    const ac = { data: new Date(a, m - 1, d), de: $("acDe").value, para: $("acPara").value,
+                 valor, referente: limparXml($("acRef").value).trim(), obs: "" };
+    const gravar = () => gravarAcerto(ESTADO.fonte, ac, ESTADO.versao);
+    if (navigator.locks && navigator.locks.request) {
+      await navigator.locks.request("despesas-gravacao", gravar);
+    } else {
+      await gravar();
+    }
+    await carregar(ESTADO.fonte);
+    fecharAcerto();
+    aviso("Transferência registrada.", "ok");
+  } catch (err) {
+    console.error(err);
+    const msg = err && err.message ? err.message : String(err);
+    aviso(/mudou desde|está cheia|aba Acertos/.test(msg)
+      ? "Não gravei: " + msg
+      : "Não consegui gravar: " + msg + ". Feche a planilha no Excel e tente de novo.", "err");
+  } finally {
+    btn.disabled = false; btn.textContent = "Registrar";
+  }
+});
+
+/* ---------- início: trata a volta do login e reabre a última planilha ---------- */
+function mostrarErroLogin(msg) {
+  $("tvErro").textContent = msg || "";
+}
+function telaLogado(conta) {
+  $("tvTitulo").textContent = "Escolher a planilha";
+  $("tvTexto").innerHTML = conta
+    ? `Conectado como <strong>${escapar(conta)}</strong>.`
+    : "Conectado à sua conta Microsoft.";
+  $("tvPassos").hidden = true;
+  $("btnEntrar").textContent = "Escolher planilha no OneDrive";
+  $("btnEntrar").onclick = () => abrirSeletorOneDrive($("odBusca").value);
+  $("btnSair").hidden = false;
+}
+
+(async () => {
+  try {
+    const veio = await tratarRetornoLogin();
+    if (veio) aviso("Conectado.", "ok");
+  } catch (e) {
+    mostrarErroLogin("Falha no login: " + e.message);
+  }
+
+  if (temSessao()) {
+    let conta = null;
+    try { conta = (await graphJson("/me?$select=displayName,userPrincipalName")).displayName; }
+    catch (e) {
+      if (/sessão expirada/.test(e.message)) { sair(); }
+      else console.warn("perfil:", e.message);
+    }
+    if (temSessao()) {
+      telaLogado(conta);
+      // reabre direto o último arquivo usado
+      const guardado = JSON.parse(localStorage.getItem(CHAVE_ARQUIVO) || "null");
+      if (guardado && guardado.driveId && guardado.itemId) {
+        try {
+          await carregar(fonteOneDrive(guardado));
+          $("btnSair").hidden = false;
+          return;
+        } catch (e) {
+          console.warn("reabrir:", e.message);
+          aviso("Não consegui reabrir a última planilha: " + e.message, "err");
+        }
+      }
+      return;
+    }
+  }
+
+  if (!window.showOpenFilePicker) {
+    $("btnLocal").hidden = true;
+  }
+  // modo arquivo local: se já houve um, oferece reconectar
+  try {
+    const h = window.showOpenFilePicker ? await recuperarHandle() : null;
+    if (!h) return;
+    if ((await h.queryPermission({ mode: "readwrite" })) === "granted") {
+      await carregar(fonteLocal(h));
+      return;
+    }
+    $("btnLocal").textContent = `Reconectar a ${h.name}`;
+    $("btnLocal").onclick = async () => {
+      if (await garantirPermissao(h, true)) { await carregar(fonteLocal(h)); aviso("Reconectado.", "ok"); }
+      else aviso("Permissão negada.", "err");
+    };
+  } catch (e) { console.warn(e); }
+})();
+</script>
+</body>
+</html>
