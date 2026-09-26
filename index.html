@@ -328,7 +328,7 @@ code { font-family: Consolas, "Courier New", Courier, monospace; font-size: 0.81
       <div class="field"><label for="fQuem">Quem pagou</label><select id="fQuem"></select></div>
     </div>
     <div class="frow">
-      <div class="field"><label for="fRateio">% do Thiago</label><input type="number" id="fRateio" step="1" min="0" max="100" value="50"></div>
+      <div class="field"><label for="fDivisao">Divisão</label><select id="fDivisao"></select></div>
       <div class="field"><label for="fObs">Observação</label><input type="text" id="fObs"></div>
     </div>
     <div id="previaRateio" class="legend"></div>
@@ -353,7 +353,8 @@ code { font-family: Consolas, "Courier New", Courier, monospace; font-size: 0.81
         <thead><tr>
           <th style="width:28px"></th><th>Descrição</th><th>Categoria</th>
           <th class="num" style="width:120px">Valor</th><th style="width:110px">Quem pagou</th>
-          <th class="num" style="width:78px">% Thiago</th><th style="width:70px">Parcela</th>
+          <th style="width:130px">Divisão</th><th style="width:70px">Parcela</th>
+          <th class="num" style="width:120px">Resultado</th>
         </tr></thead>
         <tbody id="fxCorpo"></tbody>
       </table>
@@ -1512,6 +1513,9 @@ function montarFiltros() {
   const hoje = new Date();
   if (ESTADO.filtro.ano === null) {
     ESTADO.filtro.ano = anos.includes(hoje.getFullYear()) ? hoje.getFullYear() : anos[0];
+    // abre no mes corrente: e nele que voces trabalham, e o acumulado do ano
+    // misturava meses ja acertados com o que ainda esta em aberto
+    ESTADO.filtro.mes = ESTADO.filtro.ano === hoje.getFullYear() ? hoje.getMonth() + 1 : 0;
   }
   $("selAno").innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join("");
   $("selAno").value = ESTADO.filtro.ano;
@@ -1539,9 +1543,11 @@ function filtrados() {
 }
 
 /* Mes com lancamento mas nenhuma despesa conjunta: so as fixas foram lancadas.
-   Os valores valem, mas o total esta incompleto, e sem marcar isso o grafico
-   sugere uma queda de gasto que nao aconteceu. */
+   O mes corrente fica de fora da marcacao: ele ainda esta em andamento, nao
+   faz sentido chamar de incompleto o mes que voces estao preenchendo agora. */
 function mesSoFixas(ano, mes) {
+  const hoje = new Date();
+  if (ano * 12 + (mes - 1) >= hoje.getFullYear() * 12 + hoje.getMonth()) return false;
   let temFixa = false;
   for (const l of ESTADO.dados) {
     if (l.ano !== ano || l.mes !== mes) continue;
@@ -1665,15 +1671,20 @@ function desenhar() {
   const ordenado = [...sel].sort((a, b) => b.data - a.data || b.valor - a.valor);
   $("contagemLanc").textContent = `· ${rotulo}`;
   $("corpoTabela").innerHTML = ordenado.length
-    ? ordenado.slice(0, 400).map(l => `<tr>
+    ? ordenado.slice(0, 400).map(l => {
+        const div = divisaoDoRateio(l.rateio);
+        return `<tr>
         <td>${String(l.data.getUTCDate()).padStart(2, "0")}/${String(l.mes).padStart(2, "0")}</td>
         <td><span class="tag ${l.tipo === "Fixa" ? "" : "muted"}">${escapar(l.tipo)}</span></td>
         <td>${escapar(l.categoria)}</td>
-        <td>${escapar(l.descricao)}${l.parcela ? ` <span class="tag muted">${escapar(l.parcela)}</span>` : ""}</td>
+        <td>${escapar(l.descricao)}${l.parcela ? ` <span class="tag muted">${escapar(l.parcela)}</span>` : ""}
+          ${div !== "meio" ? `<span class="aviso-incompleto">${
+            div === "thiago" ? "conta do Thiago" : div === "ana" ? "conta da Ana"
+            : Math.round(l.rateio * 100) + "% Thiago"}</span>` : ""}</td>
         <td class="num">${brl.format(l.valor)}</td>
         <td>${escapar(l.quem)}</td>
         <td class="num ${l.anaDeve > 0 ? "pos" : l.anaDeve < 0 ? "neg" : ""}">${brl.format(l.anaDeve)}</td>
-      </tr>`).join("")
+      </tr>`; }).join("")
     : '<tr><td colspan="7" style="text-align:center;color:var(--cp-text-muted);padding:28px">Nada aqui ainda.</td></tr>';
 
   // --- acerto
@@ -1804,8 +1815,8 @@ function abrirForm() {
   $("listaCategorias").innerHTML = cats.map(c => `<option value="${escapar(c)}"></option>`).join("");
   $("fCat").value = "";
   $("fQuem").innerHTML = ["Thiago", "Ana", "Casa"].map(p => `<option>${p}</option>`).join("");
+  $("fDivisao").innerHTML = DIVISOES.map(d => `<option value="${d.id}">${d.rotulo}</option>`).join("");
   $("fDesc").value = ""; $("fValor").value = ""; $("fParcela").value = ""; $("fObs").value = "";
-  $("fRateio").value = 50;
   atualizarPrevia();
   $("overlay").hidden = false;
   setTimeout(() => $("fDesc").focus(), 40);
@@ -1813,22 +1824,19 @@ function abrirForm() {
 function fecharForm() { $("overlay").hidden = true; }
 function atualizarPrevia() {
   const v = parseFloat($("fValor").value);
-  const rBruto = parseFloat($("fRateio").value);
+  const d = DIVISOES.find(x => x.id === $("fDivisao").value) || DIVISOES[0];
   const quem = $("fQuem").value;
-  if (!Number.isFinite(rBruto) || rBruto < 0 || rBruto > 100) {
-    $("previaRateio").innerHTML = '<span style="color:var(--cp-danger)">Informe o % do Thiago entre 0 e 100.</span>';
-    return;
-  }
-  const r = rBruto / 100;
   if (!v || v <= 0) { $("previaRateio").textContent = ""; return; }
-  const cotaT = round2(v * r);
+  const cotaT = round2(v * d.rateio);
   const cotaA = round2(v - cotaT);
   const deve = quem === "Thiago" ? cotaA : quem === "Ana" ? -cotaT : 0;
-  $("previaRateio").innerHTML = `Thiago ${brl.format(cotaT)} · Ana ${brl.format(cotaA)} — ` +
-    (deve === 0 ? "sem acerto entre vocês"
-      : `<strong>${deve > 0 ? "Ana" : "Thiago"} deve ${brl.format(Math.abs(deve))}</strong>`);
+  $("previaRateio").innerHTML = `Cabe a Thiago ${brl.format(cotaT)} · a Ana ${brl.format(cotaA)}. ` +
+    (Math.abs(deve) < 0.005 ? "Ninguém deve nada."
+      : `<strong style="color:${deve > 0 ? "var(--cp-success)" : "var(--cp-danger)"}">` +
+        `${deve > 0 ? "Ana" : "Thiago"} deve ${brl.format(Math.abs(deve))}.</strong>`);
 }
-for (const id of ["fValor", "fRateio", "fQuem"]) $(id).addEventListener("input", atualizarPrevia);
+for (const id of ["fValor", "fDivisao", "fQuem"]) $(id).addEventListener("input", atualizarPrevia);
+$("fDivisao").addEventListener("change", atualizarPrevia);
 $("fQuem").addEventListener("change", atualizarPrevia);
 $("btnNovo").addEventListener("click", abrirForm);
 $("btnCancelar").addEventListener("click", fecharForm);
@@ -1846,12 +1854,7 @@ $("formNovo").addEventListener("submit", async e => {
   const btn = $("btnSalvar");
   const [a, m, d] = $("fData").value.split("-").map(Number);
   const texto = v => limparXml(v).trim();
-  const rateioBruto = parseFloat($("fRateio").value);
-  if (!Number.isFinite(rateioBruto) || rateioBruto < 0 || rateioBruto > 100) {
-    aviso("Informe o % do Thiago entre 0 e 100.", "err");
-    $("fRateio").focus();
-    return;
-  }
+  const divisao = DIVISOES.find(x => x.id === $("fDivisao").value) || DIVISOES[0];
   const reg = {
     data: new Date(a, m - 1, d),
     tipo: $("fTipo").value,
@@ -1860,7 +1863,7 @@ $("formNovo").addEventListener("submit", async e => {
     parcela: texto($("fParcela").value),
     valor: round2(parseFloat($("fValor").value)),
     quem: $("fQuem").value,
-    rateio: rateioBruto / 100,
+    rateio: divisao.rateio,
     obs: texto($("fObs").value),
   };
   if (!reg.descricao || !(reg.valor > 0)) { aviso("Preencha descrição e valor.", "err"); return; }
@@ -1927,12 +1930,27 @@ function abrirFixas() {
 }
 function fecharFixas() { $("overlayFixas").hidden = true; }
 
+/* Divisao da despesa. Guardo o rateio como "parte que cabe ao Thiago", mas na
+   tela mostro em linguagem de gente: a coluna "% Thiago" era lida como "quanto
+   o Thiago pagou", que e o oposto, e isso zerou o acerto de um mes inteiro. */
+const DIVISOES = [
+  { id: "meio", rotulo: "Meio a meio", rateio: 0.5 },
+  { id: "thiago", rotulo: "Conta do Thiago", rateio: 1 },
+  { id: "ana", rotulo: "Conta da Ana", rateio: 0 },
+];
+function divisaoDoRateio(r) {
+  if (Math.abs(r - 0.5) < 0.005) return "meio";
+  if (r >= 0.995) return "thiago";
+  if (r <= 0.005) return "ana";
+  return "outro";
+}
+
 function montarFixas() {
   const [ano, mes] = $("fxMes").value.split("-").map(Number);
   const itens = fixasDoMes(ano, mes);
   ESTADO.fixas = itens;
   if (!itens.length) {
-    $("fxCorpo").innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--cp-text-muted)">Nenhuma recorrente ativa neste mês.</td></tr>';
+    $("fxCorpo").innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--cp-text-muted)">Nenhuma recorrente ativa neste mês.</td></tr>';
     $("fxAviso").textContent = "";
     atualizarResumoFixas();
     return;
@@ -1940,9 +1958,11 @@ function montarFixas() {
   const jaTem = itens.filter(i => i.duplicado).length;
   $("fxAviso").innerHTML =
     `<strong style="color:var(--cp-warning)">Confira quem pagou.</strong> O app sugere pelo último mês,
-     e trocar o pagador inverte o acerto. Valores e pagadores vêm do último lançamento de cada despesa.` +
+     e trocar o pagador inverte o acerto. A coluna <strong>Resultado</strong> mostra na hora quem fica devendo.` +
     (jaTem ? `<br><strong>${jaTem}</strong> já lançada(s) em ${MESES[mes - 1]}/${ano} vêm desmarcada(s).` : "");
-  $("fxCorpo").innerHTML = itens.map((it, i) => `
+  $("fxCorpo").innerHTML = itens.map((it, i) => {
+    const div = divisaoDoRateio(it.rateio);
+    return `
     <tr data-i="${i}" class="${it.incluir ? "" : "fora"} ${it.varia ? "varia" : ""}">
       <td><input type="checkbox" class="inc" ${it.incluir ? "checked" : ""}></td>
       <td>${escapar(it.descricao)}
@@ -1954,10 +1974,12 @@ function montarFixas() {
       <td><select class="quem">${["Thiago", "Ana", "Casa"]
             .map(p => `<option ${p === it.quem ? "selected" : ""}>${p}</option>`).join("")}</select>
         <span class="mini">pagou em ${escapar(it.origemValor)}</span></td>
-      <td class="num"><input type="number" class="rat" step="1" min="0" max="100" style="text-align:right"
-            value="${Math.round(it.rateio * 100)}"></td>
+      <td><select class="div">${DIVISOES
+            .map(d => `<option value="${d.id}" ${d.id === div ? "selected" : ""}>${d.rotulo}</option>`).join("")}</select></td>
       <td>${escapar(it.parcela)}</td>
-    </tr>`).join("");
+      <td class="num resultado"></td>
+    </tr>`;
+  }).join("");
   $("fxCorpo").querySelectorAll("input,select").forEach(el =>
     el.addEventListener("input", e => {
       const tr = e.target.closest("tr");
@@ -1977,12 +1999,14 @@ function lerFixasDaTela() {
     if (!tr.querySelector(".inc").checked) continue;
     const it = ESTADO.fixas[+tr.dataset.i];
     const valor = round2(parseFloat(tr.querySelector(".val").value));
-    const rat = parseFloat(tr.querySelector(".rat").value);
-    if (!(valor > 0) || !Number.isFinite(rat) || rat < 0 || rat > 100) continue;
+    const idDiv = tr.querySelector(".div").value;
+    const escolhida = DIVISOES.find(d => d.id === idDiv);
+    const rateio = escolhida ? escolhida.rateio : it.rateio;
+    if (!(valor > 0)) continue;
     out.push({
       data: new Date(ano, mes - 1, dia), tipo: it.tipo, categoria: it.categoria,
       descricao: it.descricao, parcela: it.parcela, valor,
-      quem: tr.querySelector(".quem").value, rateio: rat / 100, obs: "",
+      quem: tr.querySelector(".quem").value, rateio, obs: "", _tr: tr,
     });
   }
   return out;
@@ -1990,15 +2014,27 @@ function lerFixasDaTela() {
 
 function atualizarResumoFixas() {
   const regs = lerFixasDaTela();
-  const total = regs.reduce((s, r) => s + r.valor, 0);
-  const acerto = regs.reduce((s, r) => {
+  $("fxCorpo").querySelectorAll(".resultado").forEach(td => { td.textContent = ""; });
+  let total = 0, acerto = 0;
+  for (const r of regs) {
     const cT = round2(r.valor * r.rateio);
-    return s + (r.quem === "Thiago" ? round2(r.valor - cT) : r.quem === "Ana" ? -cT : 0);
-  }, 0);
+    const cA = round2(r.valor - cT);
+    const ad = r.quem === "Thiago" ? cA : r.quem === "Ana" ? -cT : 0;
+    total += r.valor;
+    acerto += ad;
+    const td = r._tr.querySelector(".resultado");
+    if (Math.abs(ad) < 0.005) {
+      td.innerHTML = '<span style="color:var(--cp-text-muted)">sem acerto</span>';
+    } else {
+      td.innerHTML = `<span style="color:${ad > 0 ? "var(--cp-success)" : "var(--cp-danger)"}">` +
+        `${ad > 0 ? "Ana" : "Thiago"} deve<br>${brl.format(Math.abs(ad))}</span>`;
+    }
+  }
   $("fxResumo").innerHTML = regs.length
     ? `<strong>${regs.length}</strong> lançamento(s) · total ${brl.format(total)} · ` +
       (Math.abs(acerto) < 0.01 ? "sem acerto"
-        : `${acerto > 0 ? "Ana" : "Thiago"} deve ${brl.format(Math.abs(acerto))}`)
+        : `<strong style="color:${acerto > 0 ? "var(--cp-success)" : "var(--cp-danger)"}">` +
+          `${acerto > 0 ? "Ana" : "Thiago"} deve ${brl.format(Math.abs(acerto))}</strong>`)
     : "Nada selecionado.";
   $("fxGravar").disabled = regs.length === 0;
 }
@@ -2012,7 +2048,7 @@ $("overlayFixas").addEventListener("click", e => { if (e.target === $("overlayFi
 $("formFixas").addEventListener("submit", async e => {
   e.preventDefault();
   if (!ESTADO.fonte) { aviso("Abra a planilha primeiro.", "err"); return; }
-  const regs = lerFixasDaTela();
+  const regs = lerFixasDaTela().map(({ _tr, ...r }) => r);
   if (!regs.length) { aviso("Selecione ao menos uma despesa.", "err"); return; }
   const btn = $("fxGravar");
   btn.disabled = true; btn.textContent = "Gravando…";
