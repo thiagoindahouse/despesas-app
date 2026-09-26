@@ -187,6 +187,11 @@ tbody tr:hover { background: var(--cp-surface-soft); }
         background: var(--cp-surface-soft); color: var(--cp-text-muted); margin-left: 6px; }
 .item-arquivo { display: block; width: 100%; text-align: left; margin-bottom: 6px; padding: 10px 12px; }
 .item-arquivo .nm { font-weight: 600; }
+.trilha { display:flex; align-items:center; gap:4px; flex-wrap:wrap; font-size:0.8125rem; }
+.trilha .migalha { background:transparent; border:0; padding:3px 6px; color:var(--cp-accent);
+                   cursor:pointer; border-radius:6px; font:inherit; }
+.trilha .migalha:hover { background:var(--cp-accent-soft); }
+.trilha .sep { color:var(--cp-text-muted); }
 .item-arquivo .cam { display: block; font-size: 0.75rem; color: var(--cp-text-muted); margin-top: 2px; }
 .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
 .frow.one { grid-template-columns: 1fr; }
@@ -383,18 +388,20 @@ code { font-family: Consolas, "Courier New", Courier, monospace; font-size: 0.81
 <div class="overlay" id="overlayArquivo" hidden>
   <div class="modal larga">
     <h2>Escolher a planilha no OneDrive</h2>
-    <div class="frow" style="grid-template-columns:1fr auto">
-      <div class="field"><label for="odBusca">Buscar por nome</label>
-        <input type="text" id="odBusca" value="Despesas" placeholder="parte do nome do arquivo"></div>
-      <div class="field"><label>&nbsp;</label><button type="button" id="odBuscar">Buscar</button></div>
-    </div>
-    <div class="scroll" id="odLista" style="margin:6px 0 14px"></div>
+    <div id="odTrilha" class="trilha"></div>
+    <div class="scroll" id="odLista" style="margin:10px 0 14px;min-height:180px"></div>
     <details>
-      <summary class="legend" style="cursor:pointer">Não apareceu? Cole o link de compartilhamento</summary>
+      <summary class="legend" style="cursor:pointer">Buscar pelo nome ou colar um link do OneDrive</summary>
       <div class="frow" style="grid-template-columns:1fr auto;margin-top:10px">
-        <div class="field"><input type="text" id="odLink" placeholder="https://1drv.ms/x/..."></div>
-        <div class="field"><button type="button" id="odUsarLink">Usar este link</button></div>
+        <div class="field"><input type="text" id="odBusca" value="Despesas" placeholder="parte do nome"></div>
+        <div class="field"><button type="button" id="odBuscar">Buscar</button></div>
       </div>
+      <div class="frow" style="grid-template-columns:1fr auto">
+        <div class="field"><input type="text" id="odLink" placeholder="cole aqui qualquer link do OneDrive"></div>
+        <div class="field"><button type="button" id="odUsarLink">Usar link</button></div>
+      </div>
+      <div class="legend" id="odAjudaLink">Se for link de compartilhamento, abro direto.
+        Se for o endereço de abrir no navegador, uso o nome do arquivo para procurar.</div>
     </details>
     <div class="actions">
       <button type="button" class="ghost" id="odCancelar">Cancelar</button>
@@ -1165,9 +1172,27 @@ async function graphSubir(caminho, blob, versao) {
   return graphBruto(caminho, { method: "PUT", headers: cab, body: blob });
 }
 
-/* Procura planilhas .xlsx no OneDrive do usuário e nas compartilhadas com ele. */
+/* Lista o conteúdo de uma pasta do OneDrive. Navegar pastas é mais confiável
+   que depender só da busca, que pode não indexar arquivo recém-criado. */
+async function listarPasta(driveId, itemId) {
+  const base = driveId && itemId ? `/drives/${driveId}/items/${itemId}` : "/me/drive/root";
+  const j = await graphJson(`${base}/children?$top=200&$select=id,name,folder,file,parentReference,size`);
+  return (j.value || []).map(it => ({
+    driveId: it.parentReference?.driveId,
+    itemId: it.id,
+    nome: it.name,
+    pasta: !!it.folder,
+    planilha: /\.xlsx$/i.test(it.name || ""),
+    tamanho: it.size,
+  })).sort((a, b) => (b.pasta - a.pasta) || a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+/* Procura planilhas .xlsx no OneDrive do usuário e nas compartilhadas com ele.
+   Devolve também os erros, para a tela poder dizer o que realmente falhou em vez
+   de mostrar um "nada encontrado" que esconde o motivo. */
 async function procurarPlanilhas(termo) {
   const achados = new Map();
+  const falhas = [];
   const juntar = (v, origem) => {
     for (const it of v || []) {
       const ref = it.remoteItem || it;
@@ -1178,16 +1203,34 @@ async function procurarPlanilhas(termo) {
       if (!driveId || !itemId) continue;
       achados.set(driveId + "|" + itemId, {
         driveId, itemId, nome, origem,
-        pasta: ref.parentReference?.path?.replace(/^\/drive\/root:?/, "") || "",
+        pasta: ref.parentReference?.path?.replace(/^\/drive(s\/[^/]+)?\/root:?/, "") || "",
       });
     }
   };
-  const q = encodeURIComponent(termo || "xlsx");
-  try { juntar((await graphJson(`/me/drive/root/search(q='${q}')?$top=40`)).value, "meu OneDrive"); }
-  catch (e) { console.warn("busca no meu drive:", e.message); }
-  try { juntar((await graphJson("/me/drive/sharedWithMe")).value, "compartilhada comigo"); }
-  catch (e) { console.warn("compartilhadas:", e.message); }
-  return [...achados.values()];
+  const q = encodeURIComponent((termo || "").trim());
+  for (const [caminho, origem] of [
+    [`/me/drive/root/search(q='${q}')?$top=60`, "meu OneDrive"],
+    ["/me/drive/sharedWithMe", "compartilhada comigo"],
+    ["/me/drive/recent?$top=40", "usada recentemente"],
+  ]) {
+    try { juntar((await graphJson(caminho)).value, origem); }
+    catch (e) { falhas.push(`${origem}: ${e.message}`); }
+  }
+  return { achados: [...achados.values()], falhas };
+}
+
+/* Aceita tanto link de compartilhamento quanto a URL de abrir no navegador.
+   A segunda não serve para o endpoint /shares, mas dela dá para tirar o nome
+   do arquivo e procurar por ele. */
+function lerUrlOneDrive(url) {
+  const u = url.trim();
+  let nome = null;
+  try {
+    const q = new URL(u).searchParams;
+    nome = q.get("file") || null;
+  } catch { /* não é URL válida */ }
+  const compartilhamento = /1drv\.ms|[?&]e=|\/:x:\/|\/redir\?/.test(u);
+  return { url: u, nome, compartilhamento };
 }
 
 /* Resolve um link de compartilhamento do OneDrive para um arquivo. */
@@ -1350,30 +1393,81 @@ async function escolherArquivoLocal() {
 }
 
 /* ---------- escolher a planilha no OneDrive ---------- */
-async function abrirSeletorOneDrive(termo) {
-  $("odLista").innerHTML = '<div class="legend" style="padding:14px">Procurando no seu OneDrive…</div>';
-  $("overlayArquivo").hidden = false;
+let CAMINHO_OD = [];   // trilha de pastas: [{driveId, itemId, nome}]
+
+function trilhaHtml() {
+  const partes = [`<button type="button" class="migalha" data-n="0">OneDrive</button>`];
+  CAMINHO_OD.forEach((p, i) =>
+    partes.push(`<span class="sep">›</span><button type="button" class="migalha" data-n="${i + 1}">${escapar(p.nome)}</button>`));
+  return partes.join("");
+}
+
+async function navegarOneDrive(nivel) {
+  if (nivel !== undefined) CAMINHO_OD = CAMINHO_OD.slice(0, nivel);
+  const atual = CAMINHO_OD[CAMINHO_OD.length - 1];
+  $("odTrilha").innerHTML = trilhaHtml();
+  $("odTrilha").querySelectorAll(".migalha").forEach(b =>
+    b.addEventListener("click", () => navegarOneDrive(+b.dataset.n)));
+  $("odLista").innerHTML = '<div class="legend" style="padding:14px">Carregando…</div>';
   try {
-    const achados = await procurarPlanilhas(termo);
-    if (!achados.length) {
-      $("odLista").innerHTML =
-        '<div class="legend" style="padding:14px">Nenhuma planilha .xlsx encontrada. ' +
-        'Tente outro termo de busca ou cole o link de compartilhamento abaixo.</div>';
+    const itens = await listarPasta(atual?.driveId, atual?.itemId);
+    const uteis = itens.filter(i => i.pasta || i.planilha);
+    if (!uteis.length) {
+      $("odLista").innerHTML = '<div class="legend" style="padding:14px">Esta pasta não tem planilha nem subpasta.</div>';
       return;
     }
-    $("odLista").innerHTML = achados.map((a, i) => `
+    $("odLista").innerHTML = uteis.map((a, i) => `
       <button type="button" class="item-arquivo" data-i="${i}">
-        <span class="nm">${escapar(a.nome)}</span>
-        <span class="chip">${escapar(a.origem)}</span>
-        ${a.pasta ? `<span class="cam">${escapar(decodeURIComponent(a.pasta))}</span>` : ""}
+        <span class="nm">${a.pasta ? "📁 " : "📄 "}${escapar(a.nome)}</span>
+        ${a.pasta ? '<span class="chip">pasta</span>' : `<span class="chip">${((a.tamanho || 0) / 1024).toFixed(0)} KB</span>`}
       </button>`).join("");
     $("odLista").querySelectorAll(".item-arquivo").forEach(b =>
-      b.addEventListener("click", () => usarArquivoOneDrive(achados[+b.dataset.i])));
+      b.addEventListener("click", () => {
+        const a = uteis[+b.dataset.i];
+        if (a.pasta) { CAMINHO_OD.push(a); navegarOneDrive(); }
+        else usarArquivoOneDrive({ ...a, origem: "meu OneDrive" });
+      }));
   } catch (e) {
     console.error(e);
     $("odLista").innerHTML = `<div class="legend" style="padding:14px;color:var(--cp-danger)">
       Não consegui listar: ${escapar(e.message)}</div>`;
   }
+}
+
+async function buscarOneDrive(termo) {
+  $("odLista").innerHTML = '<div class="legend" style="padding:14px">Procurando…</div>';
+  try {
+    const { achados, falhas } = await procurarPlanilhas(termo);
+    let html = "";
+    if (falhas.length) {
+      html += `<div class="legend" style="padding:10px;color:var(--cp-danger)">
+        Algumas buscas falharam:<br>${falhas.map(escapar).join("<br>")}</div>`;
+    }
+    if (!achados.length) {
+      html += `<div class="legend" style="padding:14px">Nenhuma planilha .xlsx encontrada com
+        "${escapar(termo)}". Use a navegação por pastas acima.</div>`;
+    } else {
+      html += achados.map((a, i) => `
+        <button type="button" class="item-arquivo" data-i="${i}">
+          <span class="nm">📄 ${escapar(a.nome)}</span>
+          <span class="chip">${escapar(a.origem)}</span>
+          ${a.pasta ? `<span class="cam">${escapar(decodeURIComponent(a.pasta))}</span>` : ""}
+        </button>`).join("");
+    }
+    $("odLista").innerHTML = html;
+    $("odLista").querySelectorAll(".item-arquivo").forEach(b =>
+      b.addEventListener("click", () => usarArquivoOneDrive(achados[+b.dataset.i])));
+  } catch (e) {
+    console.error(e);
+    $("odLista").innerHTML = `<div class="legend" style="padding:14px;color:var(--cp-danger)">
+      Falhou: ${escapar(e.message)}</div>`;
+  }
+}
+
+async function abrirSeletorOneDrive() {
+  $("overlayArquivo").hidden = false;
+  CAMINHO_OD = [];
+  await navegarOneDrive();
 }
 
 async function usarArquivoOneDrive(item) {
@@ -1593,25 +1687,35 @@ function desenhar() {
 
 /* ---------- eventos ---------- */
 $("btnAbrir").addEventListener("click", () => {
-  if (temSessao()) abrirSeletorOneDrive($("odBusca").value);
+  if (temSessao()) abrirSeletorOneDrive();
   else escolherArquivoLocal();
 });
 $("btnEntrar").addEventListener("click", () => entrar().catch(e => mostrarErroLogin(e.message)));
 $("btnLocal").addEventListener("click", escolherArquivoLocal);
 $("btnSair").addEventListener("click", () => { sair(); location.reload(); });
-$("odBuscar").addEventListener("click", () => abrirSeletorOneDrive($("odBusca").value));
+$("odBuscar").addEventListener("click", () => buscarOneDrive($("odBusca").value));
 $("odBusca").addEventListener("keydown", e => {
-  if (e.key === "Enter") { e.preventDefault(); abrirSeletorOneDrive($("odBusca").value); }
+  if (e.key === "Enter") { e.preventDefault(); buscarOneDrive($("odBusca").value); }
 });
 $("odCancelar").addEventListener("click", () => { $("overlayArquivo").hidden = true; });
 $("overlayArquivo").addEventListener("click", e => {
   if (e.target === $("overlayArquivo")) $("overlayArquivo").hidden = true;
 });
 $("odUsarLink").addEventListener("click", async () => {
-  const url = $("odLink").value.trim();
-  if (!url) { aviso("Cole o link primeiro.", "err"); return; }
-  try { await usarArquivoOneDrive(await resolverLink(url)); }
-  catch (e) { aviso("Link não resolveu: " + (e.message || e), "err"); }
+  const bruto = $("odLink").value.trim();
+  if (!bruto) { aviso("Cole o link primeiro.", "err"); return; }
+  const info = lerUrlOneDrive(bruto);
+  if (info.compartilhamento) {
+    try { await usarArquivoOneDrive(await resolverLink(info.url)); return; }
+    catch (e) { aviso("Link não resolveu: " + (e.message || e), "err"); }
+  }
+  if (info.nome) {
+    $("odBusca").value = decodeURIComponent(info.nome).replace(/\.xlsx$/i, "");
+    aviso(`Esse link não é de compartilhamento. Procurando por "${$("odBusca").value}"…`);
+    await buscarOneDrive($("odBusca").value);
+    return;
+  }
+  aviso("Não consegui usar esse link. Use a navegação por pastas.", "err");
 });
 $("btnRecarregar").addEventListener("click", async () => {
   if (!ESTADO.fonte) return;
@@ -1936,7 +2040,7 @@ function telaLogado(conta) {
     : "Conectado à sua conta Microsoft.";
   $("tvPassos").hidden = true;
   $("btnEntrar").textContent = "Escolher planilha no OneDrive";
-  $("btnEntrar").onclick = () => abrirSeletorOneDrive($("odBusca").value);
+  $("btnEntrar").onclick = () => abrirSeletorOneDrive();
   $("btnSair").hidden = false;
 }
 
