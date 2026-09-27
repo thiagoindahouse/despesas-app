@@ -187,6 +187,16 @@ arquivo; usar nome definido.
 
 ---
 
+## Arquivo travado pelo Excel
+
+Gravar falha com `The resource you are attempting to access is locked` quando a
+planilha está aberta no Excel Online ou no Excel desktop. Leitura continua
+funcionando; só a escrita trava. Libera sozinho quando a sessão do Excel solta.
+
+Aconteceu de verdade em 27/09/2026. A mensagem que o app mostra ainda é a do
+Graph, em inglês — deveria dizer "A planilha está aberta no Excel. Feche e
+tente de novo."
+
 ## Pontos em aberto
 
 - **Ana gravando.** Ela lê, mas gravar em OneDrive pessoal de terceiro tem
@@ -200,3 +210,4 @@ arquivo; usar nome definido.
 ---
 
 *Última atualização: 27 de setembro de 2026.*
+
